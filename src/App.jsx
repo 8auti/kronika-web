@@ -12,6 +12,8 @@ import SinAcceso from "./pages/SinAcceso";
 
 import PanelUsuarios from "./pages/admin/PanelUsuarios";
 import PanelCursos from "./pages/editor/PanelCursos";
+import PanelLecciones from "./pages/editor/PanelLecciones";
+import PanelPreguntas from "./pages/editor/PanelPreguntas";
 
 export default function App() {
   return (
@@ -38,6 +40,24 @@ export default function App() {
             rolesPermitidos={["editor", "profesor"]}
           >
             <PanelCursos />
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/cursos/:cursoId/lecciones"
+        element={
+          <RutaProtegida rolesPermitidos={["editor", "profesor"]}>
+            <PanelLecciones />
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/cursos/:cursoId/lecciones/:leccionId/preguntas"
+        element={
+          <RutaProtegida rolesPermitidos={["editor", "profesor"]}>
+            <PanelPreguntas />
           </RutaProtegida>
         }
       />

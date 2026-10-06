@@ -11,7 +11,6 @@ const opcionesPorRol = {
  
   editor: [
     { nombre: "Cursos", ruta: "/cursos" },
-    { nombre: "Lecciones", ruta: "/lecciones" },
     { nombre: "Coleccionables", ruta: "/coleccionables" },
   ],
  
