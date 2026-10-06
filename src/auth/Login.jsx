@@ -8,14 +8,17 @@ import {
   signOut,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-
+import { Navigate, useNavigate } from "react-router-dom";
+ 
 import { auth, db } from "../firebase";
 import { estaBaneado } from "../services/usuariosService";
-
+import { useAuth } from "./useAuth.jsx";
+ 
+const ROLES_VALIDOS = ["admin", "editor", "profesor"];
+ 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
-
+ 
 function mensajeErrorGoogle(error) {
   switch (error.code) {
     case "auth/popup-blocked":
@@ -32,16 +35,17 @@ function mensajeErrorGoogle(error) {
       return "No se pudo iniciar sesión con Google.";
   }
 }
-
+ 
 export default function Login() {
   const navigate = useNavigate();
-
+  const { usuario, rol } = useAuth();
+ 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+ 
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
-
+ 
   /**
    * Cierra la sesión de un usuario rechazado. Si la cuenta se acaba de
    * crear en este mismo intento de login (Google crea la cuenta antes de
@@ -57,10 +61,10 @@ export default function Login() {
         console.error("No se pudo borrar la cuenta recién creada:", error);
       }
     }
-
+ 
     await signOut(auth);
   }
-
+ 
   /**
    * Paso común a todos los métodos de acceso: busca el perfil en
    * Firestore, rechaza a los usuarios sin perfil o baneados y
@@ -68,10 +72,10 @@ export default function Login() {
    */
   async function entrarConPerfil(usuario, { esCuentaNueva = false } = {}) {
     let datos;
-
+ 
     try {
       const usuarioSnap = await getDoc(doc(db, "users", usuario.uid));
-
+ 
       if (!usuarioSnap.exists()) {
         await descartarSesion(usuario, esCuentaNueva);
         setError(
@@ -79,7 +83,7 @@ export default function Login() {
         );
         return;
       }
-
+ 
       datos = usuarioSnap.data();
     } catch (error) {
       console.error("Error obteniendo el perfil:", error);
@@ -87,54 +91,54 @@ export default function Login() {
       setError("No se pudo cargar tu perfil. Intentá de nuevo.");
       return;
     }
-
+ 
     if (estaBaneado(datos)) {
       await signOut(auth);
       setError("Tu cuenta fue suspendida. Contactá al administrador.");
       return;
     }
-
+ 
     navigate(
       ["admin", "editor", "profesor"].includes(datos.rol)
       ? "/landing"
       : "/sin-acceso"
     );
   }
-
+ 
   async function handleSubmit(event) {
     event.preventDefault();
-
+ 
     setError("");
     setCargando(true);
-
+ 
     try {
       const credenciales = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-
+ 
       await entrarConPerfil(credenciales.user);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
-
+ 
       setError("El correo o la contraseña son incorrectos.");
     } finally {
       setCargando(false);
     }
   }
-
+ 
   async function handleGoogle() {
     setError("");
     setCargando(true);
-
+ 
     try {
       const credenciales = await signInWithPopup(auth, googleProvider);
-
+ 
       // true solo si Google acaba de crear la cuenta en este login
       const esCuentaNueva =
         getAdditionalUserInfo(credenciales)?.isNewUser === true;
-
+ 
       await entrarConPerfil(credenciales.user, { esCuentaNueva });
     } catch (error) {
       // Si cerró la ventana de Google no es un error que haya que mostrar
@@ -144,15 +148,20 @@ export default function Login() {
       ) {
         return;
       }
-
+ 
       console.error("Error al iniciar sesión con Google:", error);
-
+ 
       setError(mensajeErrorGoogle(error));
     } finally {
       setCargando(false);
     }
   }
-
+ 
+  // Si ya hay sesión activa, no se puede acceder al login
+  if (usuario && ROLES_VALIDOS.includes(rol)) {
+    return <Navigate to="/landing" replace />;
+  }
+ 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
       <form
@@ -162,12 +171,12 @@ export default function Login() {
         <h1 className="mb-6 text-2xl font-bold text-gray-900">
           Iniciar sesión
         </h1>
-
+ 
         <div className="mb-4">
           <label className="mb-1 block text-sm font-medium text-gray-700">
             Correo electrónico
           </label>
-
+ 
           <input
             type="email"
             value={email}
@@ -177,12 +186,12 @@ export default function Login() {
             required
           />
         </div>
-
+ 
         <div className="mb-4">
           <label className="mb-1 block text-sm font-medium text-gray-700">
             Contraseña
           </label>
-
+ 
           <input
             type="password"
             value={password}
@@ -192,13 +201,13 @@ export default function Login() {
             required
           />
         </div>
-
+ 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
             {error}
           </p>
         )}
-
+ 
         <button
           type="submit"
           disabled={cargando}
@@ -206,13 +215,13 @@ export default function Login() {
         >
           {cargando ? "Ingresando..." : "Iniciar sesión"}
         </button>
-
+ 
         <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
           <span className="h-px flex-1 bg-gray-200" />
           o
           <span className="h-px flex-1 bg-gray-200" />
         </div>
-
+ 
         <button
           type="button"
           onClick={handleGoogle}
@@ -247,7 +256,3 @@ export default function Login() {
     </main>
   );
 }
-
-
-
-
