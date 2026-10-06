@@ -1,30 +1,70 @@
-import { useEffect, useState } from "react";
-import CursoCard from "./components/CursoCard";
-import { getCursos } from "./services/cursosService";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-function App() {
-  return <ListaCursos />;
-}
+import Login from "./auth/Login";
+import RutaProtegida from "./auth/RutaProtegida";
 
-function ListaCursos() {
-  const [cursos, setCursos] = useState([]);
-  const [cargando, setCargando] = useState(true);
+import Landing from "./pages/Landing";
+import SinAcceso from "./pages/SinAcceso";
 
-  useEffect(() => {
-    getCursos()
-      .then(setCursos)
-      .finally(() => setCargando(false));
-  }, []);
+import PanelUsuarios from "./pages/admin/PanelUsuarios";
+import PanelCursos from "./pages/editor/PanelCursos";
 
-  if (cargando) return <p>Cargando...</p>;
-
+export default function App() {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 p-4">
-      {cursos.map((c) => (
-        <CursoCard key={c.id} curso={c} />
-      ))}
-    </div>
+    <Routes>
+      {/* Público */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/landing" element={<Landing />} />
+
+      {/* Admin */}
+      <Route
+        path="/usuarios"
+        element={
+          <RutaProtegida rolesPermitidos={["admin"]}>
+            <PanelUsuarios />
+          </RutaProtegida>
+        }
+      />
+
+      {/* Editor + Profesor */}
+      <Route
+        path="/cursos"
+        element={
+          <RutaProtegida
+            rolesPermitidos={["editor", "profesor"]}
+          >
+            <PanelCursos />
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/sin-acceso"
+        element={<SinAcceso />}
+      />
+
+      {/* Inicio */}
+      <Route
+        path="/"
+        element={<Inicio />}
+      />
+
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
+    </Routes>
   );
 }
 
-export default App;
+function Inicio() {
+  return (
+    <Navigate to="/landing" replace />
+  );
+}
+
+
