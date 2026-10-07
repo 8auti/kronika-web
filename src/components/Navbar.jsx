@@ -5,13 +5,17 @@ import { auth } from "../firebase";
 const opcionesPorRol = {
   admin: [
     { nombre: "Usuarios", ruta: "/usuarios" },
-    { nombre: "Instituciones", ruta: "/instituciones" },
     { nombre: "Métricas", ruta: "/metricas" },
   ],
  
   editor: [
     { nombre: "Cursos", ruta: "/cursos" },
     { nombre: "Coleccionables", ruta: "/coleccionables" },
+  ],
+ 
+  // La institución no tiene acceso al panel de cursos
+  institucion: [
+    { nombre: "Organización", ruta: "/organizacion" },
   ],
  
   profesor: [

@@ -11,10 +11,12 @@ import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useNavigate } from "react-router-dom";
  
 import { auth, db } from "../firebase";
-import { estaBaneado } from "../services/usuariosService";
+import {
+  ROLES_CON_ACCESO,
+  estaBaneado,
+} from "../services/usuariosService";
 import { useAuth } from "./useAuth.jsx";
  
-const ROLES_VALIDOS = ["admin", "editor", "profesor"];
  
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
@@ -99,7 +101,7 @@ export default function Login() {
     }
  
     navigate(
-      ["admin", "editor", "profesor"].includes(datos.rol)
+      ROLES_CON_ACCESO.includes(datos.rol)
       ? "/landing"
       : "/sin-acceso"
     );
@@ -158,7 +160,7 @@ export default function Login() {
   }
  
   // Si ya hay sesión activa, no se puede acceder al login
-  if (usuario && ROLES_VALIDOS.includes(rol)) {
+  if (usuario && ROLES_CON_ACCESO.includes(rol)) {
     return <Navigate to="/landing" replace />;
   }
  

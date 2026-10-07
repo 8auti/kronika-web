@@ -9,14 +9,23 @@ import {
   deleteField,
   doc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { app, db } from "../firebase";
 
-export const ROLES = ["admin", "editor", "profesor"];
+// Roles que el admin puede crear y editar
+export const ROLES = ["admin", "editor", "institucion"];
+
+// Roles que gestiona cada institución (el admin solo puede suspenderlos)
+export const ROLES_INSTITUCION = ["profesor", "alumno"];
+
+// Roles que pueden iniciar sesión en la web
+export const ROLES_CON_ACCESO = [...ROLES, "profesor"];
 
 export const ESTADOS = {
   ACTIVO: "activo",
@@ -62,10 +71,23 @@ function traducirErrorAuth(error) {
   }
 }
 
-export async function getUsuarios() {
-  const snapshot = await getDocs(collection(db, "users"));
+/**
+ * Lista usuarios. Sin opciones devuelve todos (admin).
+ * - institucionId: solo los que pertenecen a esa institución.
+ * - roles: solo los usuarios con alguno de esos roles.
+ */
+export async function getUsuarios({ institucionId, roles } = {}) {
+  const referencia = collection(db, "users");
+  const consulta = institucionId
+    ? query(referencia, where("institucionId", "==", institucionId))
+    : referencia;
+
+  const snapshot = await getDocs(consulta);
 
   return snapshot.docs
+    .filter((documento) =>
+      roles ? roles.includes(documento.data().rol) : true
+    )
     .map((documento) => {
       const datos = documento.data();
 
@@ -103,8 +125,11 @@ export async function completarEstados(usuarios) {
   return pendientes.length;
 }
 
-export async function crearUsuario({ nombre, email, password, rol }) {
-  if (!ROLES.includes(rol)) {
+export async function crearUsuario(
+  { nombre, email, password, rol, institucionId },
+  rolesPermitidos = ROLES
+) {
+  if (!rolesPermitidos.includes(rol)) {
     throw new Error("Rol inválido.");
   }
 
@@ -132,6 +157,7 @@ export async function crearUsuario({ nombre, email, password, rol }) {
       nombre: nombre.trim(),
       email: email.trim(),
       rol,
+      ...(institucionId ? { institucionId } : {}),
       estado: ESTADOS.ACTIVO,
       creadoEn: serverTimestamp(),
     });
@@ -148,8 +174,12 @@ export async function crearUsuario({ nombre, email, password, rol }) {
 }
 
 
-export async function actualizarUsuario(uid, { nombre, rol }) {
-  if (!ROLES.includes(rol)) {
+export async function actualizarUsuario(
+  uid,
+  { nombre, rol },
+  rolesPermitidos = ROLES
+) {
+  if (!rolesPermitidos.includes(rol)) {
     throw new Error("Rol inválido.");
   }
 

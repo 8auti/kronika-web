@@ -11,6 +11,7 @@ import Landing from "./pages/Landing";
 import SinAcceso from "./pages/SinAcceso";
 
 import PanelUsuarios from "./pages/admin/PanelUsuarios";
+import PanelOrganizacion from "./pages/institucion/PanelOrganizacion";
 import PanelCursos from "./pages/editor/PanelCursos";
 import PanelLecciones from "./pages/editor/PanelLecciones";
 import PanelPreguntas from "./pages/editor/PanelPreguntas";
@@ -28,6 +29,16 @@ export default function App() {
         element={
           <RutaProtegida rolesPermitidos={["admin"]}>
             <PanelUsuarios />
+          </RutaProtegida>
+        }
+      />
+
+      {/* Institución (el admin no accede) */}
+      <Route
+        path="/organizacion"
+        element={
+          <RutaProtegida rolesPermitidos={["institucion"]}>
+            <PanelOrganizacion />
           </RutaProtegida>
         }
       />
