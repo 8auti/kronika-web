@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import {
+  TIPO_ABIERTA,
   TIPOS_PREGUNTA,
   actualizarPregunta,
   crearPregunta,
@@ -25,7 +26,6 @@ const btnPeligro =
 const btnEditar =
   "rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50";
 
-
 const MIN_RESPUESTAS = 2;
 const MAX_RESPUESTAS = 6;
 
@@ -34,6 +34,7 @@ const FORMULARIO_VACIO = {
   tipo_pregunta: "multiple_choice",
   respuestas: ["", ""],
   respuesta_correcta_index: 0,
+  respuesta_correcta_texto: "",
 };
 
 const etiquetaTipo = (valor) =>
@@ -93,6 +94,7 @@ export default function PanelPreguntas() {
       tipo_pregunta: p.tipo_pregunta ?? "multiple_choice",
       respuestas: p.respuestas?.length ? [...p.respuestas] : ["", ""],
       respuesta_correcta_index: p.respuesta_correcta_index ?? 0,
+      respuesta_correcta_texto: p.respuesta_correcta_texto ?? "",
     });
     setMostrarFormulario(true);
   };
@@ -113,7 +115,7 @@ export default function PanelPreguntas() {
     setFormulario((f) =>
       f.respuestas.length >= MAX_RESPUESTAS
         ? f
-        : { ...f, respuestas: [...f.respuestas, ""] }
+        : { ...f, respuestas: [...f.respuestas, ""] },
     );
 
   const quitarRespuesta = (i) =>
@@ -135,18 +137,31 @@ export default function PanelPreguntas() {
     e.preventDefault();
     setError("");
 
+    const esAbierta = formulario.tipo_pregunta === TIPO_ABIERTA;
+
+    // En las preguntas abiertas el editor escribe la pregunta y la respuesta
+    // correcta (texto); el usuario responde escribiendo. No hay opciones.
     const datos = {
       pregunta: formulario.pregunta.trim(),
       tipo_pregunta: formulario.tipo_pregunta,
-      respuestas: formulario.respuestas.map((r) => r.trim()),
-      respuesta_correcta_index: formulario.respuesta_correcta_index,
+      respuestas: esAbierta ? [] : formulario.respuestas.map((r) => r.trim()),
+      respuesta_correcta_index: esAbierta
+        ? null
+        : formulario.respuesta_correcta_index,
+      respuesta_correcta_texto: esAbierta
+        ? formulario.respuesta_correcta_texto.trim()
+        : "",
     };
 
     if (!datos.pregunta) {
       setError("La pregunta es obligatoria.");
       return;
     }
-    if (datos.respuestas.some((r) => !r)) {
+    if (esAbierta && !datos.respuesta_correcta_texto) {
+      setError("Escribí la respuesta correcta.");
+      return;
+    }
+    if (!esAbierta && datos.respuestas.some((r) => !r)) {
       setError("Completá todas las respuestas o quitá las que sobren.");
       return;
     }
@@ -225,7 +240,10 @@ export default function PanelPreguntas() {
               <select
                 value={formulario.tipo_pregunta}
                 onChange={(e) =>
-                  setFormulario((f) => ({ ...f, tipo_pregunta: e.target.value }))
+                  setFormulario((f) => ({
+                    ...f,
+                    tipo_pregunta: e.target.value,
+                  }))
                 }
                 className={`${inputClase} mt-1`}
               >
@@ -249,62 +267,88 @@ export default function PanelPreguntas() {
               />
             </label>
 
-            <fieldset>
-              <legend className="text-sm font-medium text-gray-700">
-                Respuestas{" "}
-                <span className="font-normal text-gray-500">
-                  (marcá la correcta)
+            {formulario.tipo_pregunta === TIPO_ABIERTA ? (
+              <label className="block text-sm font-medium text-gray-700">
+                Respuesta correcta
+                <span className="ml-1 font-normal text-gray-500">
+                  (el usuario va a responder escribiendo)
                 </span>
-              </legend>
+                <textarea
+                  rows={2}
+                  value={formulario.respuesta_correcta_texto}
+                  onChange={(e) =>
+                    setFormulario((f) => ({
+                      ...f,
+                      respuesta_correcta_texto: e.target.value,
+                    }))
+                  }
+                  className={`${inputClase} mt-1`}
+                />
+              </label>
+            ) : (
+              <fieldset>
+                <legend className="text-sm font-medium text-gray-700">
+                  Respuestas{" "}
+                  <span className="font-normal text-gray-500">
+                    (marcá la correcta)
+                  </span>
+                </legend>
 
-              <div className="mt-2 space-y-2">
-                {formulario.respuestas.map((respuesta, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correcta"
-                      checked={formulario.respuesta_correcta_index === i}
-                      onChange={() =>
-                        setFormulario((f) => ({
-                          ...f,
-                          respuesta_correcta_index: i,
-                        }))
-                      }
-                      className="h-4 w-4 accent-indigo-600"
-                      aria-label={`Respuesta ${i + 1} correcta`}
-                    />
-                    <input
-                      value={respuesta}
-                      onChange={(e) => cambiarRespuesta(i, e.target.value)}
-                      placeholder={`Respuesta ${i + 1}`}
-                      className={inputClase}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => quitarRespuesta(i)}
-                      disabled={formulario.respuestas.length <= MIN_RESPUESTAS}
-                      className={btnPeligro}
-                      aria-label="Quitar respuesta"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+                <div className="mt-2 space-y-2">
+                  {formulario.respuestas.map((respuesta, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="correcta"
+                        checked={formulario.respuesta_correcta_index === i}
+                        onChange={() =>
+                          setFormulario((f) => ({
+                            ...f,
+                            respuesta_correcta_index: i,
+                          }))
+                        }
+                        className="h-4 w-4 accent-indigo-600"
+                        aria-label={`Respuesta ${i + 1} correcta`}
+                      />
+                      <input
+                        value={respuesta}
+                        onChange={(e) => cambiarRespuesta(i, e.target.value)}
+                        placeholder={`Respuesta ${i + 1}`}
+                        className={inputClase}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => quitarRespuesta(i)}
+                        disabled={
+                          formulario.respuestas.length <= MIN_RESPUESTAS
+                        }
+                        className={btnPeligro}
+                        aria-label="Quitar respuesta"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
-              {formulario.respuestas.length < MAX_RESPUESTAS && (
-                <button
-                  type="button"
-                  onClick={agregarRespuesta}
-                  className="mt-2 text-sm font-medium text-indigo-600 hover:underline"
-                >
-                  + Agregar respuesta
-                </button>
-              )}
-            </fieldset>
+                {formulario.respuestas.length < MAX_RESPUESTAS && (
+                  <button
+                    type="button"
+                    onClick={agregarRespuesta}
+                    className="mt-2 text-sm font-medium text-indigo-600 hover:underline"
+                  >
+                    + Agregar respuesta
+                  </button>
+                )}
+              </fieldset>
+            )}
 
             <div className="flex gap-2">
-              <button type="submit" disabled={guardando} className={btnPrimario}>
+              <button
+                type="submit"
+                disabled={guardando}
+                className={btnPrimario}
+              >
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
               <button
@@ -321,7 +365,9 @@ export default function PanelPreguntas() {
         {cargando && <p>Cargando preguntas...</p>}
 
         {!cargando && preguntas.length === 0 && (
-          <p className="text-gray-500">Esta lección todavía no tiene preguntas.</p>
+          <p className="text-gray-500">
+            Esta lección todavía no tiene preguntas.
+          </p>
         )}
 
         <ul className="space-y-3">
@@ -360,20 +406,28 @@ export default function PanelPreguntas() {
                 )}
               </div>
 
-              <ul className="mt-3 space-y-1 text-sm">
-                {p.respuestas?.map((r, i) => (
-                  <li
-                    key={i}
-                    className={
-                      i === p.respuesta_correcta_index
-                        ? "font-medium text-green-700"
-                        : "text-gray-600"
-                    }
-                  >
-                    {i === p.respuesta_correcta_index ? "✓" : "•"} {r}
-                  </li>
-                ))}
-              </ul>
+              {p.tipo_pregunta === TIPO_ABIERTA ? (
+                <p className="mt-3 text-sm font-medium text-green-700">
+                  ✓{" "}
+                  {p.respuesta_correcta_texto ||
+                    "Sin respuesta correcta cargada"}
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-1 text-sm">
+                  {p.respuestas?.map((r, i) => (
+                    <li
+                      key={i}
+                      className={
+                        i === p.respuesta_correcta_index
+                          ? "font-medium text-green-700"
+                          : "text-gray-600"
+                      }
+                    >
+                      {i === p.respuesta_correcta_index ? "✓" : "•"} {r}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -381,3 +435,4 @@ export default function PanelPreguntas() {
     </>
   );
 }
+ 

@@ -101,9 +101,12 @@ export async function eliminarLeccion(leccionId) {
 
 /* ============================= PREGUNTAS ============================= */
 
+// Pregunta abierta: el editor escribe la pregunta y el usuario responde escribiendo
+export const TIPO_ABIERTA = "cuestionario";
+
 export const TIPOS_PREGUNTA = [
   { valor: "multiple_choice", etiqueta: "Multiple choice" },
-  { valor: "cuestionario", etiqueta: "Cuestionario" },
+  { valor: TIPO_ABIERTA, etiqueta: "Cuestionario" },
 ];
 
 // lecciones/{leccionId}/preguntas
@@ -120,6 +123,7 @@ export async function crearPregunta(leccionId, datos) {
     pregunta: datos.pregunta,
     respuesta_correcta_index: datos.respuesta_correcta_index,
     respuestas: datos.respuestas,
+    respuesta_correcta_texto: datos.respuesta_correcta_texto ?? "",
     tipo_pregunta: datos.tipo_pregunta,
   });
 }
@@ -129,6 +133,7 @@ export async function actualizarPregunta(leccionId, preguntaId, datos) {
     pregunta: datos.pregunta,
     respuesta_correcta_index: datos.respuesta_correcta_index,
     respuestas: datos.respuestas,
+    respuesta_correcta_texto: datos.respuesta_correcta_texto ?? "",
     tipo_pregunta: datos.tipo_pregunta,
   });
 }
@@ -136,3 +141,4 @@ export async function actualizarPregunta(leccionId, preguntaId, datos) {
 export async function eliminarPregunta(leccionId, preguntaId) {
   return deleteDoc(doc(db, "lecciones", leccionId, "preguntas", preguntaId));
 }
+ 
