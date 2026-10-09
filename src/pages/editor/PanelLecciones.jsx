@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { getAula } from "../../services/aulasService";
 import {
   actualizarLeccion,
   crearLeccion,
@@ -25,12 +26,15 @@ const btnEditar =
 
 
 export default function PanelLecciones() {
-  const { cursoId } = useParams();
+  const { aulaId, cursoId } = useParams();
   const { rol, usuario } = useAuth();
   const navigate = useNavigate();
 
-  const puedeEditar = rol === "editor";
+  // Dentro de un aula edita el profesor; en /cursos edita el editor
+  const puedeEditar = aulaId ? rol === "profesor" : rol === "editor";
+  const rutaCursos = aulaId ? `/aulas/${aulaId}/cursos` : "/cursos";
 
+  const [aula, setAula] = useState(null);
   const [curso, setCurso] = useState(null);
   const [lecciones, setLecciones] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -44,12 +48,14 @@ export default function PanelLecciones() {
   const cargar = async () => {
     try {
       setCargando(true);
-      const [cursoData, leccionesData] = await Promise.all([
+      const [cursoData, leccionesData, aulaData] = await Promise.all([
         getCurso(cursoId),
         getLecciones(cursoId),
+        aulaId ? getAula(aulaId) : null,
       ]);
       setCurso(cursoData);
       setLecciones(leccionesData);
+      setAula(aulaData);
     } catch (e) {
       console.error(e);
       setError("No se pudieron cargar las lecciones.");
@@ -62,6 +68,13 @@ export default function PanelLecciones() {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursoId]);
+
+  // El curso debe pertenecer al aula de la URL y el aula a este profesor
+  const sinAcceso =
+    !cargando &&
+    (aulaId
+      ? aula?.profesor_id !== usuario.uid || curso?.aula_id !== aulaId
+      : Boolean(curso?.aula_id));
 
   const siguienteOrden = () =>
     lecciones.reduce((max, l) => Math.max(max, l.orden ?? 0), 0) + 1;
@@ -140,15 +153,36 @@ export default function PanelLecciones() {
 
       <main className="mx-auto max-w-4xl p-6">
         <nav className="mb-2 text-sm text-gray-500">
-          <Link to="/cursos" className="hover:text-indigo-600">
-            Cursos
-          </Link>{" "}
-          / <span className="text-gray-800">{curso?.nombre ?? "..."}</span>
+          {aulaId && (
+            <>
+              <Link to="/aulas" className="hover:text-indigo-600">
+                Aulas
+              </Link>{" "}
+              /{" "}
+              <Link to={rutaCursos} className="hover:text-indigo-600">
+                {aula?.nombre ?? "..."}
+              </Link>{" "}
+              /{" "}
+            </>
+          )}
+          {!aulaId && (
+            <>
+              <Link to="/cursos" className="hover:text-indigo-600">
+                Cursos
+              </Link>{" "}
+              /{" "}
+            </>
+          )}
+          <span className="text-gray-800">{curso?.nombre ?? "..."}</span>
         </nav>
+
+        {sinAcceso && (
+          <p className="mb-4 text-red-600">No tenés acceso a este curso.</p>
+        )}
 
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Lecciones</h1>
-          {puedeEditar && !mostrarFormulario && (
+          {puedeEditar && !sinAcceso && !mostrarFormulario && (
             <button type="button" onClick={abrirNuevo} className={btnPrimario}>
               + Nueva lección
             </button>
@@ -209,16 +243,16 @@ export default function PanelLecciones() {
 
         {cargando && <p>Cargando lecciones...</p>}
 
-        {!cargando && lecciones.length === 0 && (
+        {!cargando && !sinAcceso && lecciones.length === 0 && (
           <p className="text-gray-500">Este curso todavía no tiene lecciones.</p>
         )}
 
         <ul className="space-y-3">
-          {lecciones.map((leccion) => (
+          {(sinAcceso ? [] : lecciones).map((leccion) => (
             <li
               key={leccion.id}
               onClick={() =>
-                navigate(`/cursos/${cursoId}/lecciones/${leccion.id}/preguntas`)
+                navigate(`${rutaCursos}/${cursoId}/lecciones/${leccion.id}/preguntas`)
               }
               className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >

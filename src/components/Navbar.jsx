@@ -19,8 +19,7 @@ const opcionesPorRol = {
   ],
  
   profesor: [
-    { nombre: "Cursos", ruta: "/cursos" },
-    { nombre: "Lecciones", ruta: "/lecciones" },
+    { nombre: "Aulas", ruta: "/aulas" },
     { nombre: "Reportes de desempeño", ruta: "/reportes" },
     { nombre: "Progreso de alumnos", ruta: "/progreso" },
     { nombre: "Comunicación", ruta: "/comunicacion" },

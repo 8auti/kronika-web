@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { getAula } from "../../services/aulasService";
 import {
   TIPO_ABIERTA,
   TIPOS_PREGUNTA,
@@ -41,11 +42,14 @@ const etiquetaTipo = (valor) =>
   TIPOS_PREGUNTA.find((t) => t.valor === valor)?.etiqueta ?? valor;
 
 export default function PanelPreguntas() {
-  const { cursoId, leccionId } = useParams();
-  const { rol } = useAuth();
+  const { aulaId, cursoId, leccionId } = useParams();
+  const { rol, usuario } = useAuth();
 
-  const puedeEditar = rol === "editor";
+  // Dentro de un aula edita el profesor; en /cursos edita el editor
+  const puedeEditar = aulaId ? rol === "profesor" : rol === "editor";
+  const rutaCursos = aulaId ? `/aulas/${aulaId}/cursos` : "/cursos";
 
+  const [aula, setAula] = useState(null);
   const [curso, setCurso] = useState(null);
   const [leccion, setLeccion] = useState(null);
   const [preguntas, setPreguntas] = useState([]);
@@ -60,11 +64,14 @@ export default function PanelPreguntas() {
   const cargar = async () => {
     try {
       setCargando(true);
-      const [cursoData, leccionData, preguntasData] = await Promise.all([
-        getCurso(cursoId),
-        getLeccion(leccionId),
-        getPreguntas(leccionId),
-      ]);
+      const [cursoData, leccionData, preguntasData, aulaData] =
+        await Promise.all([
+          getCurso(cursoId),
+          getLeccion(leccionId),
+          getPreguntas(leccionId),
+          aulaId ? getAula(aulaId) : null,
+        ]);
+      setAula(aulaData);
       setCurso(cursoData);
       setLeccion(leccionData);
       setPreguntas(preguntasData);
@@ -80,6 +87,13 @@ export default function PanelPreguntas() {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leccionId]);
+
+  // El curso debe pertenecer al aula de la URL y el aula a este profesor
+  const sinAcceso =
+    !cargando &&
+    (aulaId
+      ? aula?.profesor_id !== usuario.uid || curso?.aula_id !== aulaId
+      : Boolean(curso?.aula_id));
 
   const abrirNuevo = () => {
     setEditandoId(null);
@@ -202,12 +216,27 @@ export default function PanelPreguntas() {
 
       <main className="mx-auto max-w-4xl p-6">
         <nav className="mb-2 text-sm text-gray-500">
-          <Link to="/cursos" className="hover:text-indigo-600">
-            Cursos
-          </Link>{" "}
-          /{" "}
+          {aulaId ? (
+            <>
+              <Link to="/aulas" className="hover:text-indigo-600">
+                Aulas
+              </Link>{" "}
+              /{" "}
+              <Link to={rutaCursos} className="hover:text-indigo-600">
+                {aula?.nombre ?? "..."}
+              </Link>{" "}
+              /{" "}
+            </>
+          ) : (
+            <>
+              <Link to="/cursos" className="hover:text-indigo-600">
+                Cursos
+              </Link>{" "}
+              /{" "}
+            </>
+          )}
           <Link
-            to={`/cursos/${cursoId}/lecciones`}
+            to={`${rutaCursos}/${cursoId}/lecciones`}
             className="hover:text-indigo-600"
           >
             {curso?.nombre ?? "..."}
@@ -215,9 +244,13 @@ export default function PanelPreguntas() {
           / <span className="text-gray-800">{leccion?.nombre ?? "..."}</span>
         </nav>
 
+        {sinAcceso && (
+          <p className="mb-4 text-red-600">No tenés acceso a esta lección.</p>
+        )}
+
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Preguntas</h1>
-          {puedeEditar && !mostrarFormulario && (
+          {puedeEditar && !sinAcceso && !mostrarFormulario && (
             <button type="button" onClick={abrirNuevo} className={btnPrimario}>
               + Nueva pregunta
             </button>
@@ -364,14 +397,14 @@ export default function PanelPreguntas() {
 
         {cargando && <p>Cargando preguntas...</p>}
 
-        {!cargando && preguntas.length === 0 && (
+        {!cargando && !sinAcceso && preguntas.length === 0 && (
           <p className="text-gray-500">
             Esta lección todavía no tiene preguntas.
           </p>
         )}
 
         <ul className="space-y-3">
-          {preguntas.map((p, n) => (
+          {(sinAcceso ? [] : preguntas).map((p, n) => (
             <li
               key={p.id}
               className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"

@@ -14,10 +14,14 @@ import { db } from "../firebase";
 
 /* ============================== CURSOS ============================== */
 
+// Cursos de Kronika (los del editor). Los cursos que un profesor crea o
+// copia dentro de un aula tienen aula_id y no se listan acá.
 export async function getCursos() {
   const q = query(collection(db, "cursos"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((c) => !c.aula_id);
 }
 
 export async function getCurso(cursoId) {
