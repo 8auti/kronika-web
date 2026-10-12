@@ -143,7 +143,7 @@ function Pasos() {
             {i < PASOS.length - 1 && (
               <span
                 aria-hidden="true"
-                className="self-center text-gray-400 max-md:rotate-90"
+                className="self-center text-3xl text-gray-400 max-md:rotate-90"
               >
                 →
               </span>
