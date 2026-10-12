@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Baloo 2", sans-serif;
+  --font-body: "Nunito", sans-serif;
+
+  --color-azul: #2394ff;
+  --color-azul-claro: #bfe0ff;
+  --color-naranja: #f5a93f;
+  --color-violeta: #8b5cf6;
+  --color-violeta-claro: #e0d4ff;
+}
