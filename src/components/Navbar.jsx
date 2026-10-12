@@ -38,7 +38,7 @@ function Navbar({ rol }) {
           to="/landing"
           className="text-2xl font-bold text-indigo-600"
         >
-          Kronika
+          <h2 className="text-naranja">Kronika</h2>
         </Link>
  
         {/* Navegación */}
