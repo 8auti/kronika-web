@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { useAuth } from "../auth/useAuth";
+import ListaUsuarios from "./ListaUsuarios";
+import Paginacion from "./Paginacion";
+
+import { useAuth } from "../../auth/useAuth";
 import {
   actualizarUsuario,
   cambiarEstadoUsuario,
@@ -8,7 +11,7 @@ import {
   ESTADOS,
   crearUsuario,
   getUsuarios,
-} from "../services/usuariosService";
+} from "../../services/usuariosService";
 
 const FORMULARIO_VACIO = {
   nombre: "",
@@ -94,6 +97,23 @@ export default function GestorUsuarios({
         .some((campo) => campo.toLowerCase().includes(texto))
     );
   }, [usuarios, busqueda]);
+
+  const [pagina, setPagina] = useState(1);
+  const usuariosPorPagina = 10;
+
+  const totalPaginas = Math.ceil(usuariosFiltrados.length / usuariosPorPagina);
+
+  useEffect(() => {
+    if (pagina > Math.max(1, totalPaginas)) {
+      setPagina(Math.max(1, totalPaginas));
+    }
+  }, [pagina, totalPaginas]);
+
+  const usuariosPaginados = useMemo(() => {
+    const inicio = (pagina - 1) * usuariosPorPagina;
+
+    return usuariosFiltrados.slice(inicio, inicio + usuariosPorPagina);
+  }, [usuariosFiltrados, pagina]);
 
   const cambiarFormulario = (e) => {
     const { name, value } = e.target;
@@ -225,7 +245,7 @@ export default function GestorUsuarios({
         {mostrarFormulario && (
           <form
             onSubmit={guardar}
-            className="mb-8 rounded-xl border bg-white p-6 shadow-sm"
+            className="mb-8 rounded-xl border border-gray-300 bg-white p-6 shadow-sm"
           >
             <h2 className="mb-4 text-xl font-semibold">
               {editando ? "Editar usuario" : "Crear usuario"}
@@ -233,23 +253,19 @@ export default function GestorUsuarios({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Nombre
-                </label>
+                <label className="mb-1 block text-sm font-medium">Nombre</label>
                 <input
                   type="text"
                   name="nombre"
                   value={formulario.nombre}
                   onChange={cambiarFormulario}
                   required
-                  className="w-full rounded-lg border px-3 py-2"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Email
-                </label>
+                <label className="mb-1 block text-sm font-medium">Email</label>
                 <input
                   type="email"
                   name="email"
@@ -257,7 +273,7 @@ export default function GestorUsuarios({
                   onChange={cambiarFormulario}
                   required
                   disabled={editando}
-                  className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100 disabled:text-gray-500"
                 />
               </div>
 
@@ -274,21 +290,19 @@ export default function GestorUsuarios({
                     required
                     minLength={6}
                     autoComplete="new-password"
-                    className="w-full rounded-lg border px-3 py-2"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
                   />
                 </div>
               )}
 
               <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Rol
-                </label>
+                <label className="mb-1 block text-sm font-medium">Rol</label>
                 <select
                   name="rol"
                   value={formulario.rol}
                   onChange={cambiarFormulario}
                   disabled={editandoseASiMismo}
-                  className="w-full rounded-lg border px-3 py-2 capitalize disabled:bg-gray-100 disabled:text-gray-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 capitalize disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   {rolesCreables.map((r) => (
                     <option key={r} value={r}>
@@ -322,109 +336,34 @@ export default function GestorUsuarios({
         <input
           type="search"
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(e) => {
+            setBusqueda(e.target.value);
+            setPagina(1);
+          }}
           placeholder="Buscar por nombre, email, rol o estado..."
-          className="mb-4 w-full rounded-lg border bg-white px-3 py-2 md:max-w-sm"
+          className="mb-4 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 md:max-w-sm"
         />
 
         {cargando ? (
           <p>Cargando usuarios...</p>
-        ) : usuariosFiltrados.length === 0 ? (
-          <div className="rounded-xl border bg-white p-8 text-center">
-            {usuarios.length === 0
-              ? "No hay usuarios registrados."
-              : "Ningún usuario coincide con la búsqueda."}
-          </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left">Nombre</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Rol</th>
-                  <th className="px-4 py-3 text-left">Estado</th>
-                  <th className="px-4 py-3 text-left">UID</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
+          <>
+            <ListaUsuarios
+              usuarios={usuariosPaginados}
+              usuarioActualUid={usuarioActual?.uid}
+              rolesEditables={rolesEditables}
+              onEditar={abrirEditar}
+              onAlternarEstado={alternarEstado}
+              cargando={cargando}
+              hayUsuariosRegistrados={usuarios.length > 0}
+            />
 
-              <tbody>
-                {usuariosFiltrados.map((u) => {
-                  const esElMismo = u.uid === usuarioActual?.uid;
-
-                  return (
-                    <tr key={u.uid} className="border-t">
-                      <td className="px-4 py-3">
-                        {u.nombre || "-"}
-                        {esElMismo && (
-                          <span className="ml-2 text-xs text-gray-400">
-                            (vos)
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3">{u.email || "-"}</td>
-
-                      <td className="px-4 py-3">
-                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-sm capitalize text-indigo-700">
-                          {u.rol || "-"}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-sm capitalize ${
-                            u.estado === ESTADOS.BANEADO
-                              ? "bg-red-100 text-red-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {u.estado}
-                        </span>
-                      </td>
-
-                      <td className="max-w-xs truncate px-4 py-3 font-mono text-xs text-gray-500">
-                        {u.uid}
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        {rolesEditables.includes(u.rol) && (
-                          <button
-                            type="button"
-                            onClick={() => abrirEditar(u)}
-                            className="mr-2 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300"
-                          >
-                            Editar
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => alternarEstado(u)}
-                          disabled={esElMismo}
-                          title={
-                            esElMismo
-                              ? "No podés suspenderte a vos mismo"
-                              : undefined
-                          }
-                          className={`rounded-lg px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 ${
-                            u.estado === ESTADOS.BANEADO
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "bg-red-500 hover:bg-red-600"
-                          }`}
-                        >
-                          {u.estado === ESTADOS.BANEADO
-                            ? "Reactivar"
-                            : "Suspender"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            <Paginacion
+              pagina={pagina}
+              totalPaginas={totalPaginas}
+              setPagina={setPagina}
+            />
+          </>
         )}
       </main>
     </>

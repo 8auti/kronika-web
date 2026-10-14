@@ -1,4 +1,4 @@
-import GestorUsuarios from "../../components/GestorUsuarios";
+import GestorUsuarios from "../../components/usuarios/GestorUsuarios";
 import { useAuth } from "../../auth/useAuth";
 import { ROLES_INSTITUCION } from "../../services/usuariosService";
 

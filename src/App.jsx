@@ -15,6 +15,7 @@ import PanelLecciones from "./pages/editor/PanelLecciones";
 import PanelPreguntas from "./pages/editor/PanelPreguntas";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
+import Footer from "./components/Footer.jsx";
 
 // Layout con navbar: todas las rutas anidadas lo muestran
 function MainLayout() {
@@ -24,6 +25,7 @@ function MainLayout() {
     <>
       {!cargando && <Navbar rol={usuario ? rol : null} />}
       <Outlet />
+      <Footer/>
     </>
   );
 }

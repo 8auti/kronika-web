@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import Footer from "../components/Footer";
 import BotonGooglePlay from "../components/BotonGooglePlay";
 
 const IMG = {
@@ -666,8 +665,6 @@ export default function Landing() {
         <Faq />
         <CtaFinal />
       </main>
-
-      <Footer />
     </>
   );
 }

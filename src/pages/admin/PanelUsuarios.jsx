@@ -1,4 +1,4 @@
-import GestorUsuarios from "../../components/GestorUsuarios";
+import GestorUsuarios from "../../components/usuarios/GestorUsuarios";
 import { ROLES } from "../../services/usuariosService";
 
 // El admin crea/edita admin, editor e institución.
