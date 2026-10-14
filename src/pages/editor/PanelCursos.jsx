@@ -8,7 +8,6 @@ import {
   getCursos,
 } from "../../services/cursosService";
 import CursoCard from "../../components/CursoCard";
-import Navbar from "../../components/Navbar";
 import { useAuth } from "../../auth/useAuth";
 
 // Clases de Tailwind de este panel
@@ -134,8 +133,6 @@ export default function PanelCursos() {
 
   return (
     <>
-      <Navbar rol={rol} />
-
       <main className="mx-auto max-w-7xl p-6">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Cursos</h1>

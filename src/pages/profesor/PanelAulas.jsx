@@ -7,7 +7,6 @@ import {
   eliminarAula,
   getAulas,
 } from "../../services/aulasService";
-import Navbar from "../../components/Navbar";
 import { useAuth } from "../../auth/useAuth";
 
 // Clases de Tailwind de este panel
@@ -30,7 +29,7 @@ const formatearFecha = (ts) =>
   }) ?? "—";
 
 export default function PanelAulas() {
-  const { rol, usuario } = useAuth();
+  const { usuario } = useAuth();
   const navigate = useNavigate();
 
   const [aulas, setAulas] = useState([]);
@@ -125,8 +124,6 @@ export default function PanelAulas() {
 
   return (
     <>
-      <Navbar rol={rol} />
-
       <main className="mx-auto max-w-7xl p-6">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Aulas</h1>

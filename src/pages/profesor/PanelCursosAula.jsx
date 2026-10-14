@@ -13,7 +13,6 @@ import {
   getCursos,
 } from "../../services/cursosService";
 import CursoCard from "../../components/CursoCard";
-import Navbar from "../../components/Navbar";
 import { useAuth } from "../../auth/useAuth";
 
 // Clases de Tailwind de este panel
@@ -188,8 +187,6 @@ export default function PanelCursosAula() {
 
   return (
     <>
-      <Navbar rol={rol} />
-
       <main className="mx-auto max-w-7xl p-6">
         <nav className="mb-2 text-sm text-gray-500">
           <Link to="/aulas" className="hover:text-indigo-600">

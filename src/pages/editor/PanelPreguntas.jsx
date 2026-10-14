@@ -12,7 +12,6 @@ import {
   getLeccion,
   getPreguntas,
 } from "../../services/cursosService";
-import Navbar from "../../components/Navbar";
 import { useAuth } from "../../auth/useAuth";
 
 // Clases de Tailwind de este panel
@@ -212,8 +211,6 @@ export default function PanelPreguntas() {
 
   return (
     <>
-      <Navbar rol={rol} />
-
       <main className="mx-auto max-w-4xl p-6">
         <nav className="mb-2 text-sm text-gray-500">
           {aulaId ? (
