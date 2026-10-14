@@ -224,7 +224,7 @@ export default function GestorUsuarios({
           <button
             type="button"
             onClick={mostrarFormulario ? cerrarFormulario : abrirCrear}
-            className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
           >
             {mostrarFormulario ? "Cancelar" : "Nuevo usuario"}
           </button>

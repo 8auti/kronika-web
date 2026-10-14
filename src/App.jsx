@@ -4,6 +4,9 @@ import { useAuth } from "./auth/useAuth.jsx";
 import Login from "./auth/Login";
 import RutaProtegida from "./auth/RutaProtegida";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer.jsx";
+import DashboardShell from "./components/DashboardShell.jsx";
+import { ROLES_CON_DASHBOARD } from "./config/menuPorRol.js";
 
 import Landing from "./pages/Landing";
 import SinAcceso from "./pages/SinAcceso";
@@ -15,7 +18,6 @@ import PanelLecciones from "./pages/editor/PanelLecciones";
 import PanelPreguntas from "./pages/editor/PanelPreguntas";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
-import Footer from "./components/Footer.jsx";
 
 // Layout con navbar: todas las rutas anidadas lo muestran
 function MainLayout() {
@@ -25,7 +27,7 @@ function MainLayout() {
     <>
       {!cargando && <Navbar rol={usuario ? rol : null} />}
       <Outlet />
-      <Footer/>
+      <Footer />
     </>
   );
 }
@@ -33,8 +35,6 @@ function MainLayout() {
 export default function App() {
   return (
     <Routes>
-      {/* Sin navbar */}
-
       {/* Con navbar */}
       <Route element={<MainLayout />}>
         {/* Público */}
@@ -42,41 +42,47 @@ export default function App() {
         <Route path="/sin-acceso" element={<SinAcceso />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Admin */}
-        <Route element={<RutaProtegida rolesPermitidos={["admin"]} />}>
-          <Route path="/usuarios" element={<PanelUsuarios />} />
-        </Route>
+        {/* Dashboard: navbar arriba + sidebar al costado.
+            Entra cualquier rol con dashboard; cada grupo restringe a su rol. */}
+        <Route element={<RutaProtegida rolesPermitidos={ROLES_CON_DASHBOARD} />}>
+          <Route element={<DashboardShell />}>
+            {/* Admin */}
+            <Route element={<RutaProtegida rolesPermitidos={["admin"]} />}>
+              <Route path="/usuarios" element={<PanelUsuarios />} />
+            </Route>
 
-        {/* Institución (el admin no accede) */}
-        <Route element={<RutaProtegida rolesPermitidos={["institucion"]} />}>
-          <Route path="/organizacion" element={<PanelOrganizacion />} />
-        </Route>
+            {/* Institución (el admin no accede) */}
+            <Route element={<RutaProtegida rolesPermitidos={["institucion"]} />}>
+              <Route path="/organizacion" element={<PanelOrganizacion />} />
+            </Route>
 
-        {/* Editor: cursos de Kronika */}
-        <Route element={<RutaProtegida rolesPermitidos={["editor"]} />}>
-          <Route path="/cursos" element={<PanelCursos />} />
-          <Route
-            path="/cursos/:cursoId/lecciones"
-            element={<PanelLecciones />}
-          />
-          <Route
-            path="/cursos/:cursoId/lecciones/:leccionId/preguntas"
-            element={<PanelPreguntas />}
-          />
-        </Route>
+            {/* Editor: cursos de Kronika */}
+            <Route element={<RutaProtegida rolesPermitidos={["editor"]} />}>
+              <Route path="/cursos" element={<PanelCursos />} />
+              <Route
+                path="/cursos/:cursoId/lecciones"
+                element={<PanelLecciones />}
+              />
+              <Route
+                path="/cursos/:cursoId/lecciones/:leccionId/preguntas"
+                element={<PanelPreguntas />}
+              />
+            </Route>
 
-        {/* Profesor: aulas y sus cursos */}
-        <Route element={<RutaProtegida rolesPermitidos={["profesor"]} />}>
-          <Route path="/aulas" element={<PanelAulas />} />
-          <Route path="/aulas/:aulaId/cursos" element={<PanelCursosAula />} />
-          <Route
-            path="/aulas/:aulaId/cursos/:cursoId/lecciones"
-            element={<PanelLecciones />}
-          />
-          <Route
-            path="/aulas/:aulaId/cursos/:cursoId/lecciones/:leccionId/preguntas"
-            element={<PanelPreguntas />}
-          />
+            {/* Profesor: aulas y sus cursos */}
+            <Route element={<RutaProtegida rolesPermitidos={["profesor"]} />}>
+              <Route path="/aulas" element={<PanelAulas />} />
+              <Route path="/aulas/:aulaId/cursos" element={<PanelCursosAula />} />
+              <Route
+                path="/aulas/:aulaId/cursos/:cursoId/lecciones"
+                element={<PanelLecciones />}
+              />
+              <Route
+                path="/aulas/:aulaId/cursos/:cursoId/lecciones/:leccionId/preguntas"
+                element={<PanelPreguntas />}
+              />
+            </Route>
+          </Route>
         </Route>
       </Route>
 

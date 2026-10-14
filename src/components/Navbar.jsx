@@ -3,24 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
-const opcionesPorRol = {
-  admin: [
-    { nombre: "Usuarios", ruta: "/usuarios" },
-    { nombre: "Métricas", ruta: "/metricas" },
-  ],
-  editor: [
-    { nombre: "Cursos", ruta: "/cursos" },
-    { nombre: "Coleccionables", ruta: "/coleccionables" },
-  ],
-  // La institución no tiene acceso al panel de cursos
-  institucion: [{ nombre: "Organización", ruta: "/organizacion" }],
-  profesor: [
-    { nombre: "Aulas", ruta: "/aulas" },
-    { nombre: "Reportes de desempeño", ruta: "/reportes" },
-    { nombre: "Progreso de alumnos", ruta: "/progreso" },
-    { nombre: "Comunicación", ruta: "/comunicacion" },
-  ],
-};
+import { menuPorRol } from "../config/menuPorRol";
+
+// El menú completo vive en el sidebar; el navbar solo da acceso al dashboard
+const opcionesPorRol = Object.fromEntries(
+  Object.entries(menuPorRol).map(([rol, items]) => [
+    rol,
+    [{ nombre: "Dashboard", ruta: items[0].to, prefijos: items.map((i) => i.to) }],
+  ]),
+);
 
 /*
   Color de la pestaña. Se usa en el rectángulo y en las dos "colas".
@@ -132,7 +123,7 @@ function Navbar({ rol }) {
                 onMouseEnter={() => moverA(opcion.ruta)}
                 onFocus={() => moverA(opcion.ruta)}
                 onBlur={() => moverA(rutaActiva)}
-                className="relative z-10 flex items-center px-4 font-medium text-gray-700 transition-colors hover:text-indigo-600"
+                className="relative z-10 flex items-center px-4 font-medium text-gray-700 transition-colors hover:text-blue-600"
               >
                 {opcion.nombre}
               </Link>
@@ -157,7 +148,7 @@ function Navbar({ rol }) {
             ) : (
               <Link
                 to="/login"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 Iniciar sesión
               </Link>

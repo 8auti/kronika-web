@@ -1,169 +1,197 @@
+import { useLayoutEffect, useRef, useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Layers } from "lucide-react";
 
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import {
-  Menu,
-  X,
-  LogOut,
-  ChevronLeft,
-} from "lucide-react";
+const cx = (...clases) => clases.filter(Boolean).join(" ");
 
+// Ancho del sidebar colapsado (px)
+const ANCHO_CERRADO = 72;
+
+const ITEM =
+  "flex h-10 w-full items-center rounded-xl pl-2 text-sm font-semibold outline-none " +
+  "transition-colors motion-reduce:transition-none " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+
+const ACTIVO = "bg-blue-600 text-white";
+const INACTIVO = "text-slate-600 hover:bg-blue-50 hover:text-blue-600";
+
+/**
+ * items:       [{ to, label, icon, end?, onClick? }]  menú principal
+ * footerItems: igual que items, debajo de un divisor (ej. "Cerrar sesión")
+ *   - con `to`      -> navega (NavLink, se marca activo solo)
+ *   - con `onClick` -> botón
+ * brand: { name: string, logo?: ReactNode }
+ *
+ * Abierto, el ancho se ajusta solo al texto más largo del menú.
+ */
 export default function Sidebar({
-  title = "Panel de Control",
-  logo = null,
   items = [],
   footerItems = [],
-  onLogout,
-  defaultCollapsed = false,
+  brand = { name: "Brand" },
+  defaultOpen = false,
+  className,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [open, setOpen] = useState(defaultOpen);
+  const [anchoAbierto, setAnchoAbierto] = useState(200);
+  const medidor = useRef(null);
 
-  const linkClass = ({ isActive }) =>
-    [
-      "group flex items-center gap-3 rounded-xl px-3 py-2.5",
-      "text-sm font-medium transition-colors duration-200",
-      "focus-visible:outline-none focus-visible:ring-2",
-      "focus-visible:ring-gray-400",
-      isActive
-        ? "bg-gray-100 text-gray-950"
-        : "text-gray-600 hover:bg-gray-100 hover:text-gray-950",
-      isCollapsed ? "justify-center" : "",
-    ].join(" ");
+  // Mide un duplicado invisible del menú para saber cuánto ocupa el texto más largo
+  const todos = [...items, ...footerItems];
+  const clave = brand.name + "|" + todos.map((i) => i.label).join("|");
+  useLayoutEffect(() => {
+    const medir = () => {
+      if (medidor.current) {
+        // + 16 del padding del aside + 2 de margen contra redondeos
+        setAnchoAbierto(Math.ceil(medidor.current.getBoundingClientRect().width) + 18);
+      }
+    };
+    medir();
+    document.fonts?.ready.then(medir); // recalcula cuando carga la tipografía
+  }, [clave]);
 
-  const renderItems = (menuItems) =>
-    menuItems.map((item) => {
-      const Icon = item.icon;
+  // En pantallas chicas el menú abierto tapa el contenido: se cierra al navegar
+  const cerrarEnMovil = () => {
+    if (window.matchMedia("(max-width: 767px)").matches) setOpen(false);
+  };
 
-      return (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          title={isCollapsed ? item.label : undefined}
-          onClick={() => setIsOpen(false)}
-          className={linkClass}
-        >
-          {Icon && (
-            <Icon
-              size={20}
-              strokeWidth={1.8}
-              className="shrink-0"
-            />
-          )}
+  const fundido = cx(
+    "transition-opacity duration-200 motion-reduce:transition-none",
+    open ? "opacity-100 delay-100" : "opacity-0",
+  );
 
-          {!isCollapsed && (
-            <span className="truncate">{item.label}</span>
-          )}
+  const renderItem = ({ to, label, icon: Icon, end, onClick }) => {
+    const contenido = (
+      <>
+        <span className="grid w-10 shrink-0 place-items-center">
+          {Icon && <Icon className="size-5" aria-hidden="true" />}
+        </span>
+        <span className={cx("whitespace-nowrap pr-3", fundido)}>{label}</span>
+      </>
+    );
 
-          {item.badge != null && !isCollapsed && (
-            <span className="ml-auto rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-700">
-              {item.badge}
-            </span>
-          )}
-        </NavLink>
-      );
-    });
+    return (
+      <li key={to ?? label}>
+        {to ? (
+          <NavLink
+            to={to}
+            end={end}
+            title={open ? undefined : label}
+            onClick={cerrarEnMovil}
+            className={({ isActive }) => cx(ITEM, isActive ? ACTIVO : INACTIVO)}
+          >
+            {contenido}
+          </NavLink>
+        ) : (
+          <button
+            type="button"
+            title={open ? undefined : label}
+            onClick={() => {
+              cerrarEnMovil();
+              onClick?.();
+            }}
+            className={cx(ITEM, INACTIVO)}
+          >
+            {contenido}
+          </button>
+        )}
+      </li>
+    );
+  };
 
   return (
-    <>
-      {/* Botón móvil */}
-      <button
-        type="button"
-        aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-4 top-4 z-50 rounded-lg border border-gray-200 bg-white p-2 text-gray-700 shadow-sm hover:bg-gray-100 md:hidden"
-      >
-        {isOpen ? <X size={22} /> : <Menu size={22} />}
-      </button>
-
-      {/* Fondo oscuro en móvil */}
-      {isOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menú"
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-40 bg-black/30 md:hidden"
-        />
+    <div
+      style={{ "--ancho-abierto": `${anchoAbierto + 16}px` }}
+      className={cx(
+        "relative shrink-0 p-2 transition-[width] duration-300 motion-reduce:transition-none",
+        open ? "w-[5.5rem] md:w-[var(--ancho-abierto)]" : "w-[5.5rem]",
+        className,
       )}
+    >
+      {/* Duplicado invisible, solo para medir el ancho */}
+      <div
+        ref={medidor}
+        aria-hidden="true"
+        className="pointer-events-none invisible absolute left-0 top-0 flex h-0 w-max flex-col overflow-hidden"
+      >
+        <div className="flex">
+          <span className="w-7" />
+          <span className="whitespace-nowrap px-2 text-base font-bold">{brand.name}</span>
+          <span className="w-7" />
+        </div>
+        {todos.map((item) => (
+          <div key={item.to ?? item.label} className="flex pl-2">
+            <span className="w-10" />
+            <span className="whitespace-nowrap pr-3 text-sm font-semibold">{item.label}</span>
+          </div>
+        ))}
+      </div>
 
       <aside
-        className={[
-          "fixed inset-y-0 left-0 z-40 flex h-dvh flex-col",
-          "border-r border-gray-200 bg-white",
-          "transition-[width,transform] duration-200 ease-in-out",
-          isCollapsed ? "w-[76px]" : "w-64",
-          isOpen
-            ? "translate-x-0"
-            : "-translate-x-full md:translate-x-0",
-        ].join(" ")}
+        style={{ width: open ? anchoAbierto : ANCHO_CERRADO }}
+        className={cx(
+          "sticky top-2 z-40 flex h-[calc(100svh-var(--navbar-h,4.5rem)-1rem)] flex-col overflow-hidden rounded-2xl p-2",
+          "bg-white text-slate-700 shadow-lg shadow-slate-900/10 ring-1 ring-black/5",
+          "transition-[width] duration-300 motion-reduce:transition-none",
+        )}
       >
-        {/* Encabezado */}
-        <div className="flex h-20 shrink-0 items-center gap-3 border-b border-gray-100 px-4">
-          {logo && (
-            <img
-              src={logo}
-              alt=""
-              className="h-9 w-9 shrink-0 rounded-lg object-contain"
-            />
-          )}
+        {/* Cabecera: ícono + nombre + flecha para abrir/cerrar */}
+        <div className="flex h-12 shrink-0 items-center">
+          <span className="grid size-7 shrink-0 place-items-center text-blue-600">
+            {brand.logo ?? <Layers className="size-6" aria-hidden="true" />}
+          </span>
 
-          {!isCollapsed && (
-            <span className="truncate text-base font-semibold tracking-tight text-gray-900">
-              {title}
+          <span className="min-w-0 flex-1 overflow-hidden">
+            <span
+              className={cx(
+                "block whitespace-nowrap px-2 text-base font-bold text-slate-700",
+                fundido,
+              )}
+            >
+              {brand.name}
             </span>
-          )}
+          </span>
 
           <button
             type="button"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            aria-label={
-              isCollapsed
-                ? "Expandir sidebar"
-                : "Contraer sidebar"
-            }
-            className="ml-auto hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 md:block"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            className="grid size-7 shrink-0 place-items-center rounded-lg text-slate-500 outline-none transition-colors hover:bg-blue-50 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-blue-600 motion-reduce:transition-none"
           >
-            <ChevronLeft
-              size={18}
-              className={
-                isCollapsed ? "rotate-180 transition-transform" : ""
-              }
-            />
+            {open ? <ChevronLeft className="size-5" /> : <ChevronRight className="size-5" />}
           </button>
         </div>
 
         {/* Navegación principal */}
         <nav
-          aria-label="Navegación principal"
-          className="flex-1 space-y-1 overflow-y-auto p-3"
+          aria-label="Principal"
+          className="flex-1 overflow-y-auto overflow-x-hidden py-2 [scrollbar-width:none]"
         >
-          {renderItems(items)}
+          <ul className="flex flex-col gap-1">{items.map(renderItem)}</ul>
         </nav>
 
-        {/* Navegación inferior */}
-        <div className="shrink-0 space-y-1 border-t border-gray-100 p-3">
-          {renderItems(footerItems)}
-
-          {onLogout && (
-            <button
-              type="button"
-              title={isCollapsed ? "Cerrar sesión" : undefined}
-              onClick={onLogout}
-              className={[
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5",
-                "text-sm font-medium text-gray-600",
-                "transition-colors hover:bg-gray-100 hover:text-gray-950",
-                isCollapsed ? "justify-center" : "",
-              ].join(" ")}
-            >
-              <LogOut size={20} className="shrink-0" />
-              {!isCollapsed && <span>Cerrar sesión</span>}
-            </button>
-          )}
-        </div>
+        {/* Pie: separado por un divisor (ej. cerrar sesión) */}
+        {footerItems.length > 0 && (
+          <div className="shrink-0 border-t border-slate-200 pt-2">
+            <ul className="flex flex-col gap-1">{footerItems.map(renderItem)}</ul>
+          </div>
+        )}
       </aside>
-    </>
+    </div>
+  );
+}
+
+/**
+ * Layout listo para usar como ruta padre: sidebar + contenido (<Outlet />).
+ * Le pasás los ítems según el rol.
+ */
+export function DashboardLayout({ items, footerItems, brand }) {
+  return (
+    <div className="flex min-h-[calc(100svh-var(--navbar-h,4.5rem))] bg-gray-100">
+      <Sidebar items={items} footerItems={footerItems} brand={brand} />
+      <main className="min-w-0 flex-1 py-3 pl-1 pr-3 md:py-5 md:pr-5">
+        <Outlet />
+      </main>
+    </div>
   );
 }
