@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-import Navbar from "./Navbar";
 import { useAuth } from "../auth/useAuth";
 import {
   actualizarUsuario,
@@ -195,8 +194,6 @@ export default function GestorUsuarios({
 
   return (
     <>
-      <Navbar rol={rol} />
-
       <main className="mx-auto max-w-7xl p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
