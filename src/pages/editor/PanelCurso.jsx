@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 
 import { getAula } from "../../services/aulasService";
 import {
@@ -26,6 +25,14 @@ import {
   btnSecundario,
   inputClase,
 } from "../../components/nodos/estilos";
+
+import {
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 // Clave de la zona "Nodos sin unidad" para el arrastre
 const SIN_UNIDAD = "sin-unidad";
@@ -305,7 +312,7 @@ export default function PanelCurso() {
         </span>
         <div>
           <h4 className="font-medium text-gray-900">{n.titulo}</h4>
-          <span className="text-xs text-gray-500">
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
             {etiquetaTipoNodo(n.tipo)}
           </span>
         </div>
@@ -317,15 +324,19 @@ export default function PanelCurso() {
             type="button"
             onClick={() => navigate(`${rutaCursos}/${cursoId}/nodos/${n.id}`)}
             className={btnEditar}
+            aria-label={`Editar nodo ${n.titulo}`}
+            title="Editar"
           >
-            Editar
+            <Pencil size={16} />
           </button>
           <button
             type="button"
             onClick={() => borrarNodo(n)}
             className={btnPeligro}
+            aria-label={`Eliminar nodo ${n.titulo}`}
+            title="Eliminar"
           >
-            Eliminar
+            <Trash2 size={16} />
           </button>
         </div>
       )}
