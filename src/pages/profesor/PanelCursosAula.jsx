@@ -11,6 +11,7 @@ import {
   actualizarCurso,
   eliminarCurso,
   getCursos,
+  tituloCurso,
 } from "../../services/cursosService";
 import CursoCard from "../../components/CursoCard";
 import { useAuth } from "../../auth/useAuth";
@@ -27,7 +28,7 @@ const btnPeligro =
 const btnEditar =
   "rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50";
 
-const FORMULARIO_VACIO = { nombre: "", descripcion: "", imagen_url: "" };
+const FORMULARIO_VACIO = { titulo: "", descripcion: "", imagen_url: "" };
 
 // Cursos de un aula: solo se ven los del aula (los del editor no aparecen
 // hasta que el profesor los agrega con "Agregar curso de Kronika").
@@ -90,7 +91,7 @@ export default function PanelCursosAula() {
   const abrirEdicion = (curso) => {
     setEditandoId(curso.id);
     setFormulario({
-      nombre: curso.nombre ?? "",
+      titulo: tituloCurso(curso),
       descripcion: curso.descripcion ?? "",
       imagen_url: curso.imagen_url ?? "",
     });
@@ -109,13 +110,13 @@ export default function PanelCursosAula() {
     setError("");
 
     const datos = {
-      nombre: formulario.nombre.trim(),
+      titulo: formulario.titulo.trim(),
       descripcion: formulario.descripcion.trim(),
       imagen_url: formulario.imagen_url.trim(),
     };
 
-    if (!datos.nombre) {
-      setError("El nombre es obligatorio.");
+    if (!datos.titulo) {
+      setError("El título es obligatorio.");
       return;
     }
 
@@ -138,7 +139,7 @@ export default function PanelCursosAula() {
 
   const eliminar = async (curso) => {
     const confirmar = window.confirm(
-      `¿Eliminar el curso "${curso.nombre}"? Se borrarán también sus lecciones y preguntas.`
+      `¿Eliminar el curso "${tituloCurso(curso)}"? Se borrarán también sus unidades y nodos.`
     );
     if (!confirmar) return;
 
@@ -159,7 +160,8 @@ export default function PanelCursosAula() {
     setMostrarKronika(true);
     try {
       setCargandoKronika(true);
-      setCursosKronika(await getCursos());
+      // Solo los cursos publicados se pueden copiar a un aula
+      setCursosKronika((await getCursos()).filter((c) => c.publicado));
     } catch (e) {
       console.error(e);
       setError("No se pudieron cargar los cursos de Kronika.");
@@ -172,7 +174,7 @@ export default function PanelCursosAula() {
     try {
       setError("");
       setAgregandoId(curso.id);
-      await agregarCursoKronika(curso, aulaId, usuario.uid);
+      await agregarCursoKronika(curso, aulaId);
       await cargar();
     } catch (e) {
       console.error(e);
@@ -244,10 +246,10 @@ export default function PanelCursosAula() {
                 </h2>
 
                 <label className="block text-sm font-medium text-gray-700">
-                  Nombre
+                  Título
                   <input
-                    value={formulario.nombre}
-                    onChange={cambiar("nombre")}
+                    value={formulario.titulo}
+                    onChange={cambiar("titulo")}
                     className={`${inputClase} mt-1`}
                   />
                 </label>
@@ -298,8 +300,8 @@ export default function PanelCursosAula() {
                   <div>
                     <h2 className="text-lg font-semibold">Cursos de Kronika</h2>
                     <p className="text-sm text-gray-600">
-                      Al agregar un curso se copia a tu aula con sus lecciones
-                      y preguntas, y podés modificarlo sin afectar el original.
+                      Al agregar un curso se copia a tu aula con sus unidades
+                      y nodos, y podés modificarlo sin afectar el original.
                     </p>
                   </div>
                   <button
@@ -365,7 +367,7 @@ export default function PanelCursosAula() {
                     key={curso.id}
                     curso={curso}
                     onClick={() =>
-                      navigate(`/aulas/${aulaId}/cursos/${curso.id}/lecciones`)
+                      navigate(`/aulas/${aulaId}/cursos/${curso.id}`)
                     }
                     acciones={
                       <>

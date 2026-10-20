@@ -6,6 +6,7 @@ import {
   crearCurso,
   eliminarCurso,
   getCursos,
+  tituloCurso,
 } from "../../services/cursosService";
 import CursoCard from "../../components/CursoCard";
 import { useAuth } from "../../auth/useAuth";
@@ -23,7 +24,7 @@ const btnEditar =
   "rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50";
 
 
-const FORMULARIO_VACIO = { nombre: "", descripcion: "", imagen_url: "" };
+const FORMULARIO_VACIO = { titulo: "", descripcion: "", imagen_url: "" };
 
 export default function PanelCursos() {
   const { rol } = useAuth();
@@ -69,7 +70,7 @@ export default function PanelCursos() {
   const abrirEdicion = (curso) => {
     setEditandoId(curso.id);
     setFormulario({
-      nombre: curso.nombre ?? "",
+      titulo: tituloCurso(curso),
       descripcion: curso.descripcion ?? "",
       imagen_url: curso.imagen_url ?? "",
     });
@@ -87,13 +88,13 @@ export default function PanelCursos() {
     setError("");
 
     const datos = {
-      nombre: formulario.nombre.trim(),
+      titulo: formulario.titulo.trim(),
       descripcion: formulario.descripcion.trim(),
       imagen_url: formulario.imagen_url.trim(),
     };
 
-    if (!datos.nombre) {
-      setError("El nombre es obligatorio.");
+    if (!datos.titulo) {
+      setError("El título es obligatorio.");
       return;
     }
 
@@ -103,7 +104,10 @@ export default function PanelCursos() {
         await actualizarCurso(editandoId, datos);
       } else {
         // tipo_creador sale automáticamente del rol del usuario
-        await crearCurso(datos, rol);
+        const ref = await crearCurso(datos, rol);
+        // Curso nuevo: se abre su mapa para crear unidades y nodos
+        navigate(`/cursos/${ref.id}`);
+        return;
       }
       cerrarFormulario();
       await cargarCursos();
@@ -117,7 +121,7 @@ export default function PanelCursos() {
 
   const eliminar = async (curso) => {
     const confirmar = window.confirm(
-      `¿Eliminar el curso "${curso.nombre}"? Se borrarán también sus lecciones y preguntas.`
+      `¿Eliminar el curso "${tituloCurso(curso)}"? Se borrarán también sus unidades y nodos.`
     );
     if (!confirmar) return;
 
@@ -155,10 +159,10 @@ export default function PanelCursos() {
             </h2>
 
             <label className="block text-sm font-medium text-gray-700">
-              Nombre
+              Título
               <input
-                value={formulario.nombre}
-                onChange={cambiar("nombre")}
+                value={formulario.titulo}
+                onChange={cambiar("titulo")}
                 className={`${inputClase} mt-1`}
               />
             </label>
@@ -216,7 +220,7 @@ export default function PanelCursos() {
               <CursoCard
                 key={curso.id}
                 curso={curso}
-                onClick={() => navigate(`/cursos/${curso.id}/lecciones`)}
+                onClick={() => navigate(`/cursos/${curso.id}`)}
                 acciones={
                   puedeEditar && (
                     <>

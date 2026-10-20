@@ -14,8 +14,8 @@ import SinAcceso from "./pages/SinAcceso";
 import PanelUsuarios from "./pages/admin/PanelUsuarios";
 import PanelOrganizacion from "./pages/institucion/PanelOrganizacion";
 import PanelCursos from "./pages/editor/PanelCursos";
-import PanelLecciones from "./pages/editor/PanelLecciones";
-import PanelPreguntas from "./pages/editor/PanelPreguntas";
+import PanelCurso from "./pages/editor/PanelCurso";
+import PanelNodo from "./pages/editor/PanelNodo";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
 
@@ -59,13 +59,10 @@ export default function App() {
             {/* Editor: cursos de Kronika */}
             <Route element={<RutaProtegida rolesPermitidos={["editor"]} />}>
               <Route path="/cursos" element={<PanelCursos />} />
+              <Route path="/cursos/:cursoId" element={<PanelCurso />} />
               <Route
-                path="/cursos/:cursoId/lecciones"
-                element={<PanelLecciones />}
-              />
-              <Route
-                path="/cursos/:cursoId/lecciones/:leccionId/preguntas"
-                element={<PanelPreguntas />}
+                path="/cursos/:cursoId/nodos/:nodoId"
+                element={<PanelNodo />}
               />
             </Route>
 
@@ -74,12 +71,12 @@ export default function App() {
               <Route path="/aulas" element={<PanelAulas />} />
               <Route path="/aulas/:aulaId/cursos" element={<PanelCursosAula />} />
               <Route
-                path="/aulas/:aulaId/cursos/:cursoId/lecciones"
-                element={<PanelLecciones />}
+                path="/aulas/:aulaId/cursos/:cursoId"
+                element={<PanelCurso />}
               />
               <Route
-                path="/aulas/:aulaId/cursos/:cursoId/lecciones/:leccionId/preguntas"
-                element={<PanelPreguntas />}
+                path="/aulas/:aulaId/cursos/:cursoId/nodos/:nodoId"
+                element={<PanelNodo />}
               />
             </Route>
           </Route>

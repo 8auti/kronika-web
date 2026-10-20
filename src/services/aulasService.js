@@ -12,11 +12,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import {
-  eliminarCurso,
-  getLecciones,
-  getPreguntas,
-} from "./cursosService";
+import { datosCursoNuevo, eliminarCurso, getNodos } from "./cursosService";
 
 /* ============================== AULAS ============================== */
 // aulas/{aulaId}:
@@ -77,7 +73,7 @@ export async function actualizarAula(aulaId, { nombre }) {
   return updateDoc(doc(db, "aulas", aulaId), { nombre });
 }
 
-// Borra en cascada: cursos del aula (con sus lecciones y preguntas) -> aula
+// Borra en cascada: cursos del aula (con sus nodos) -> aula
 export async function eliminarAula(aulaId) {
   const cursos = await getCursosDeAula(aulaId);
   for (const curso of cursos) {
@@ -88,7 +84,7 @@ export async function eliminarAula(aulaId) {
 
 /* ========================= CURSOS DEL AULA ========================= */
 // Los cursos del aula viven en la misma colección "cursos" y se distinguen
-// por el campo aula_id. Así lecciones y preguntas funcionan igual que
+// por el campo aula_id. Así unidades y nodos funcionan igual que
 // con los cursos del editor.
 
 export async function getCursosDeAula(aulaId) {
@@ -97,55 +93,45 @@ export async function getCursosDeAula(aulaId) {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function crearCursoEnAula(
-  { nombre, descripcion, imagen_url },
-  aulaId
-) {
+export async function crearCursoEnAula(datos, aulaId) {
   return addDoc(collection(db, "cursos"), {
-    descripcion,
-    imagen_url,
-    nombre,
+    ...datosCursoNuevo(datos),
     tipo_creador: "profesor",
     aula_id: aulaId,
   });
 }
 
 /**
- * Copia un curso de Kronika (curso + lecciones + preguntas) dentro del aula.
+ * Copia un curso de Kronika (curso + unidades + nodos) dentro del aula.
  * Es una copia independiente: el profesor puede modificarla sin afectar
  * el curso original del editor. curso_origen_id guarda de dónde viene.
+ * Los ids de unidad se conservan, así los nodos copiados siguen apuntando
+ * a su unidad.
  */
-export async function agregarCursoKronika(cursoOrigen, aulaId, profesorId) {
-  const lecciones = await getLecciones(cursoOrigen.id);
+export async function agregarCursoKronika(cursoOrigen, aulaId) {
+  const nodos = await getNodos(cursoOrigen.id);
 
   const cursoRef = await addDoc(collection(db, "cursos"), {
+    titulo: cursoOrigen.titulo ?? cursoOrigen.nombre ?? "",
     descripcion: cursoOrigen.descripcion ?? "",
     imagen_url: cursoOrigen.imagen_url ?? "",
-    nombre: cursoOrigen.nombre,
+    version: 1,
+    publicado: cursoOrigen.publicado ?? false,
+    unidades: cursoOrigen.unidades ?? [],
     tipo_creador: "profesor",
     aula_id: aulaId,
     curso_origen_id: cursoOrigen.id,
   });
 
-  for (const leccion of lecciones) {
-    const leccionRef = await addDoc(collection(db, "lecciones"), {
-      creador_id: profesorId,
-      curso_id: cursoRef.id,
-      nombre: leccion.nombre,
-      orden: leccion.orden ?? 0,
+  const destino = collection(db, "cursos", cursoRef.id, "nodos");
+
+  // Lotes de hasta 400 operaciones (el máximo de Firestore es 500)
+  for (let i = 0; i < nodos.length; i += 400) {
+    const batch = writeBatch(db);
+    nodos.slice(i, i + 400).forEach(({ id: _id, ...datos }) => {
+      batch.set(doc(destino), datos);
     });
-
-    const preguntas = await getPreguntas(leccion.id);
-    const destino = collection(db, "lecciones", leccionRef.id, "preguntas");
-
-    // Lotes de hasta 400 operaciones (el máximo de Firestore es 500)
-    for (let i = 0; i < preguntas.length; i += 400) {
-      const batch = writeBatch(db);
-      preguntas.slice(i, i + 400).forEach(({ id: _id, ...datos }) => {
-        batch.set(doc(destino), datos);
-      });
-      await batch.commit();
-    }
+    await batch.commit();
   }
 
   return cursoRef;
