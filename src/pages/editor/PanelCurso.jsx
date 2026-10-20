@@ -647,29 +647,21 @@ export default function PanelCurso() {
                 {...zona(SIN_UNIDAD, null)}
                 className={claseZona(
                   SIN_UNIDAD,
-                  "rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4"
+                  "rounded-xl border border-dashed border-red-300 bg-red-50 p-4"
                 )}
               >
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-semibold text-amber-800">
+                  <h2 className="text-lg font-semibold text-red-800">
                     Nodos sin unidad
-                    <span className="ml-2 text-xs font-normal text-amber-700">
+                    <span className="ml-2 text-xs font-normal text-red-700">
                       {huerfanos.length} nodo{huerfanos.length === 1 ? "" : "s"}
                     </span>
                   </h2>
-                  {puedeEditar && (
-                    <button
-                      type="button"
-                      onClick={() => abrirNodoNuevo(null)}
-                      className={btnEditar}
-                    >
-                      + Nodo
-                    </button>
-                  )}
+
                 </div>
 
                 {huerfanos.length === 0 ? (
-                  <p className="text-sm text-amber-700">
+                  <p className="text-xs text-red-700">
                     Arrastrá un nodo hasta acá para dejarlo sin unidad.
                   </p>
                 ) : (
