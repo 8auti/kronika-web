@@ -13,6 +13,7 @@ import {
   getNodos,
   guardarUnidad,
   setPublicado,
+  siguienteOrden,
   tituloCurso,
   unidadesOrdenadas,
   validarOrden,
@@ -102,13 +103,15 @@ export default function PanelCurso() {
   const unidades = unidadesOrdenadas(curso);
   const idsUnidades = new Set(unidades.map((u) => u.id));
   const nodosDe = (unidadId) => nodos.filter((n) => n.unidadId === unidadId);
-  // Sin unidad: unidadId null/ausente, o apuntando a una unidad que ya no existe
-  const huerfanos = nodos.filter((n) => !idsUnidades.has(n.unidadId));
+  // Sin unidad: unidadId null/ausente, o apuntando a una unidad que ya no
+  // existe. No tienen orden, así que se listan alfabéticamente.
+  const huerfanos = nodos
+    .filter((n) => !idsUnidades.has(n.unidadId))
+    .sort((a, b) => (a.titulo ?? "").localeCompare(b.titulo ?? ""));
 
-  const siguienteOrdenNodo = () =>
-    nodos.reduce((max, n) => Math.max(max, n.orden ?? 0), 0) + 1;
-  const siguienteOrdenUnidad = () =>
-    unidades.reduce((max, u) => Math.max(max, u.orden ?? 0), 0) + 1;
+  // El orden de los nodos es propio de cada unidad
+  const siguienteOrdenNodo = (unidadId) => siguienteOrden(nodosDe(unidadId));
+  const siguienteOrdenUnidad = () => siguienteOrden(unidades);
 
   // Ejecuta una acción de escritura con manejo común de errores
   const ejecutar = async (accion, mensajeError) => {
@@ -158,7 +161,7 @@ export default function PanelCurso() {
     const titulo = formUnidad.titulo.trim();
 
     if (!titulo) return setError("El título de la unidad es obligatorio.");
-    const errorOrden = validarOrden(formUnidad.orden, unidades, formUnidad.id);
+    const errorOrden = validarOrden(formUnidad.orden);
     if (errorOrden) return setError(errorOrden);
 
     await ejecutar(
@@ -194,7 +197,8 @@ export default function PanelCurso() {
       unidadId,
       titulo: "",
       tipo: TIPOS_NODO[0].valor,
-      orden: siguienteOrdenNodo(),
+      // Sin unidad no hay orden
+      orden: unidadId ? siguienteOrdenNodo(unidadId) : null,
     });
   };
 
@@ -203,8 +207,11 @@ export default function PanelCurso() {
     const titulo = formNodo.titulo.trim();
 
     if (!titulo) return setError("El título del nodo es obligatorio.");
-    const errorOrden = validarOrden(formNodo.orden, nodos);
-    if (errorOrden) return setError(errorOrden);
+    // El orden solo existe dentro de una unidad
+    if (formNodo.unidadId) {
+      const errorOrden = validarOrden(formNodo.orden);
+      if (errorOrden) return setError(errorOrden);
+    }
 
     try {
       setError("");
@@ -212,7 +219,7 @@ export default function PanelCurso() {
       const ref = await crearNodo(cursoId, {
         ...formNodo,
         titulo,
-        orden: Number(formNodo.orden),
+        orden: formNodo.unidadId ? Number(formNodo.orden) : null,
       });
       // Se crea vacío y se abre el editor para cargar su contenido
       navigate(`${rutaCursos}/${cursoId}/nodos/${ref.id}`);
@@ -260,14 +267,22 @@ export default function PanelCurso() {
     const nodo = nodos.find((n) => n.id === id);
     if (!nodo || (nodo.unidadId ?? null) === unidadId) return;
 
+    // Al cambiar de unidad el nodo queda al final de la unidad destino (el
+    // orden no se arrastra de la anterior); sin unidad no tiene orden.
+    const orden = unidadId ? siguienteOrdenNodo(unidadId) : null;
+
     // Actualización optimista; si falla se vuelve al estado anterior
     const anteriores = nodos;
-    setNodos((prev) => prev.map((n) => (n.id === id ? { ...n, unidadId } : n)));
+    setNodos((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unidadId, orden } : n))
+    );
     if (unidadId) setAbiertas((prev) => new Set(prev).add(unidadId));
 
     try {
       setError("");
-      await actualizarNodo(cursoId, id, { unidadId });
+      await actualizarNodo(cursoId, id, { unidadId, orden });
+      // La unidad de origen se renumera: se vuelven a leer los nodos
+      setNodos(await getNodos(cursoId));
       setCurso((c) => ({ ...c, version: (c.version ?? 1) + 1 }));
     } catch (e) {
       console.error(e);
@@ -281,7 +296,7 @@ export default function PanelCurso() {
 
   /* ------------------------------ Render -------------------------------- */
 
-  const renderNodo = (n) => (
+  const renderNodo = (n, conOrden = true) => (
     <li
       key={n.id}
       draggable={puedeEditar}
@@ -307,9 +322,11 @@ export default function PanelCurso() {
             aria-label="Arrastrar para mover a otra unidad"
           />
         )}
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700">
-          {n.orden}
-        </span>
+        {conOrden && (
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700">
+            {n.orden}
+          </span>
+        )}
         <div>
           <h4 className="font-medium text-gray-900">{n.titulo}</h4>
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
@@ -478,7 +495,13 @@ export default function PanelCurso() {
             >
               <h2 className="text-lg font-semibold">Nuevo nodo</h2>
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_160px_100px]">
+              <div
+                className={`grid gap-4 ${
+                  formNodo.unidadId
+                    ? "sm:grid-cols-[1fr_160px_100px]"
+                    : "sm:grid-cols-[1fr_160px]"
+                }`}
+              >
                 <label className="block text-sm font-medium text-gray-700">
                   Título
                   <input
@@ -505,18 +528,20 @@ export default function PanelCurso() {
                     ))}
                   </select>
                 </label>
-                <label className="block text-sm font-medium text-gray-700">
-                  Orden
-                  <input
-                    type="number"
-                    min={1}
-                    value={formNodo.orden}
-                    onChange={(e) =>
-                      setFormNodo((f) => ({ ...f, orden: e.target.value }))
-                    }
-                    className={`${inputClase} mt-1`}
-                  />
-                </label>
+                {formNodo.unidadId && (
+                  <label className="block text-sm font-medium text-gray-700">
+                    Orden
+                    <input
+                      type="number"
+                      min={1}
+                      value={formNodo.orden}
+                      onChange={(e) =>
+                        setFormNodo((f) => ({ ...f, orden: e.target.value }))
+                      }
+                      className={`${inputClase} mt-1`}
+                    />
+                  </label>
+                )}
               </div>
 
               <p className="text-xs text-gray-500">
@@ -633,7 +658,9 @@ export default function PanelCurso() {
                           Esta unidad todavía no tiene nodos.
                         </p>
                       ) : (
-                        <ul className="space-y-2">{nodosU.map(renderNodo)}</ul>
+                        <ul className="space-y-2">
+                          {nodosU.map((n) => renderNodo(n, true))}
+                        </ul>
                       )}
                     </div>
                   )}
@@ -665,7 +692,9 @@ export default function PanelCurso() {
                     Arrastrá un nodo hasta acá para dejarlo sin unidad.
                   </p>
                 ) : (
-                  <ul className="space-y-2">{huerfanos.map(renderNodo)}</ul>
+                  <ul className="space-y-2">
+                    {huerfanos.map((n) => renderNodo(n, false))}
+                  </ul>
                 )}
               </section>
             )}

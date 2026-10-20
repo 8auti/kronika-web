@@ -11,6 +11,7 @@ import {
   getNodos,
   limpiarContenido,
   normalizarRetos,
+  siguienteOrden,
   tituloCurso,
   unidadesOrdenadas,
   validarContenido,
@@ -115,6 +116,30 @@ export default function PanelNodo() {
 
   const noExiste = !cargando && !sinAcceso && !nodo;
   const unidades = unidadesOrdenadas(curso);
+  const idsUnidades = new Set(unidades.map((u) => u.id));
+
+  // Otros nodos de una unidad (el orden es propio de cada unidad). Un nodo
+  // que apunta a una unidad borrada cuenta como "sin unidad" ("").
+  const otrosDeUnidad = (id) =>
+    nodos.filter(
+      (n) =>
+        n.id !== nodoId &&
+        (idsUnidades.has(n.unidadId) ? n.unidadId : "") === id
+    );
+
+  // Al cambiar de unidad: conserva el orden si vuelve a la unidad original y
+  // está libre; si no, propone el siguiente libre de la unidad destino.
+  const cambiarUnidad = (id) => {
+    setUnidadId(id);
+    if (!id) return;
+    const libres = otrosDeUnidad(id);
+    const propio = nodo?.orden;
+    const sirve =
+      nodo?.unidadId === id &&
+      Number.isInteger(propio) &&
+      !libres.some((n) => n.orden === propio);
+    setOrden(sirve ? propio : siguienteOrden(libres));
+  };
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -124,9 +149,13 @@ export default function PanelNodo() {
     const tituloLimpio = titulo.trim();
 
     if (!tituloLimpio) return setError("El título es obligatorio.");
-    const errorOrden = validarOrden(orden, nodos, nodoId);
-    if (errorOrden) return setError(errorOrden);
-    const ordenNum = Number(orden);
+    // Sin unidad no hay orden; con unidad, si el número ya está usado el nodo
+    // se inserta ahí y los demás se corren
+    if (unidadId) {
+      const errorOrden = validarOrden(orden);
+      if (errorOrden) return setError(errorOrden);
+    }
+    const ordenNum = unidadId ? Number(orden) : null;
 
     const errorContenido = validarContenido(nodo.tipo, contenido);
     if (errorContenido) return setError(errorContenido);
@@ -139,12 +168,17 @@ export default function PanelNodo() {
         orden: ordenNum,
         ...limpiarContenido(nodo.tipo, contenido),
       });
-      // Mantiene al día la lista usada para validar el orden
-      setNodos((prev) =>
-        prev.map((n) =>
-          n.id === nodoId ? { ...n, titulo: tituloLimpio, orden: ordenNum } : n
-        )
-      );
+      // Los demás nodos pueden haberse renumerado: se vuelven a leer y se
+      // muestra el orden final de este nodo
+      const nuevos = await getNodos(cursoId);
+      const propio = nuevos.find((n) => n.id === nodoId);
+      setNodos(nuevos);
+      setNodo((prev) => ({
+        ...prev,
+        unidadId: propio?.unidadId ?? null,
+        orden: propio?.orden ?? null,
+      }));
+      if (unidadId) setOrden(propio?.orden ?? ordenNum);
       setGuardado(true);
     } catch (err) {
       console.error(err);
@@ -201,7 +235,13 @@ export default function PanelNodo() {
             onSubmit={guardar}
             className="space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
           >
-            <div className="grid gap-4 sm:grid-cols-[1fr_200px_100px]">
+            <div
+              className={`grid gap-4 ${
+                unidadId
+                  ? "sm:grid-cols-[1fr_200px_100px]"
+                  : "sm:grid-cols-[1fr_200px]"
+              }`}
+            >
               <label className="block text-sm font-medium text-gray-700">
                 Título
                 <input
@@ -215,7 +255,7 @@ export default function PanelNodo() {
                 Unidad
                 <select
                   value={unidadId}
-                  onChange={(e) => setUnidadId(e.target.value)}
+                  onChange={(e) => cambiarUnidad(e.target.value)}
                   className={`${inputClase} mt-1`}
                 >
                   <option value="">Sin unidad</option>
@@ -227,16 +267,18 @@ export default function PanelNodo() {
                 </select>
               </label>
 
-              <label className="block text-sm font-medium text-gray-700">
-                Orden
-                <input
-                  type="number"
-                  min={1}
-                  value={orden}
-                  onChange={(e) => setOrden(e.target.value)}
-                  className={`${inputClase} mt-1`}
-                />
-              </label>
+              {unidadId && (
+                <label className="block text-sm font-medium text-gray-700">
+                  Orden
+                  <input
+                    type="number"
+                    min={1}
+                    value={orden}
+                    onChange={(e) => setOrden(e.target.value)}
+                    className={`${inputClase} mt-1`}
+                  />
+                </label>
+              )}
             </div>
 
             <hr className="border-gray-200" />

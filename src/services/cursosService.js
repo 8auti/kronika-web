@@ -18,10 +18,15 @@ import { db } from "../firebase";
  * cursos/{cursoId}
  *   titulo, descripcion, imagen_url, version, publicado
  *   unidades: [{ id: "u1", titulo, orden }]        (agrupan nodos)
+ *   El orden de las unidades también se mantiene consecutivo (1, 2, 3...).
  *   (extras de la app: tipo_creador, aula_id, curso_origen_id)
  *
  * cursos/{cursoId}/nodos/{nodoId}
  *   unidadId, orden, tipo, titulo
+ *   `orden` es propio de cada unidad (dos unidades pueden tener su nodo 1).
+ *   Un nodo sin unidad (unidadId: null) no tiene orden (orden: null).
+ *   El orden de cada unidad se mantiene siempre consecutivo (1, 2, 3...):
+ *   al crear, mover, reordenar o borrar un nodo se renumeran los demás.
  *   + contenido embebido según el tipo:
  *     trivia | emparejar | ordenar -> retos: [...]
  *     lectura                      -> bloques: [...]
@@ -273,23 +278,50 @@ export function limpiarContenido(tipo, contenido) {
 /* ============================== ORDEN =============================== */
 
 /**
- * Valida el campo `orden` de una unidad o de un nodo.
- * - entero mayor o igual a 1
- * - único: ningún otro elemento de `items` puede tener el mismo orden
- *   (el mapa se ordena por este número, así que repetirlo deja el orden
- *   ambiguo). `excluirId` es el elemento que se está editando.
+ * Valida el campo `orden` de una unidad o de un nodo: entero mayor o igual
+ * a 1. No hace falta que esté libre: si ya lo usa otro elemento, el elemento
+ * editado se inserta en esa posición y los demás se corren (se renumera).
  * Devuelve un mensaje de error o null.
  */
-export function validarOrden(valor, items, excluirId = null) {
+export function validarOrden(valor) {
   const n = typeof valor === "number" ? valor : Number(String(valor).trim());
   if (String(valor).trim() === "" || !Number.isInteger(n) || n < 1)
     return "El orden debe ser un número entero mayor a 0.";
-
-  const choque = items.find((i) => i.id !== excluirId && i.orden === n);
-  if (choque)
-    return `El orden ${n} ya lo usa "${choque.titulo}". Elegí otro número.`;
   return null;
 }
+
+// Comparador por orden. Si `movido` ({ id, despues }) empata con otro
+// elemento, ocupa su lugar: antes del que ya estaba (sube de posición) o
+// después (baja), de modo que los demás se corren.
+const porOrden = (movido) => (a, b) => {
+  const dif = (a.orden ?? 0) - (b.orden ?? 0);
+  if (dif !== 0 || !movido) return dif;
+  if (a.id === movido.id) return movido.despues ? 1 : -1;
+  if (b.id === movido.id) return movido.despues ? -1 : 1;
+  return 0;
+};
+
+// Renumera 1, 2, 3... los nodos de cada unidad indicada, respetando el orden
+// relativo actual. Devuelve un Map nodoId -> nuevo orden, solo con los nodos
+// cuyo orden cambia. `nodos` debe reflejar ya el cambio que se va a escribir.
+// `movido` indica el nodo cuyo orden se acaba de elegir (ver porOrden).
+function renumerar(nodos, unidadIds, movido = null) {
+  const cambios = new Map();
+  for (const unidadId of new Set(unidadIds.filter(Boolean))) {
+    nodos
+      .filter((n) => n.unidadId === unidadId)
+      .sort(porOrden(movido))
+      .forEach((n, i) => {
+        if (n.orden !== i + 1) cambios.set(n.id, i + 1);
+      });
+  }
+  return cambios;
+}
+
+// Próximo orden libre dentro de un conjunto (los nodos de una unidad, o las
+// unidades del curso)
+export const siguienteOrden = (items) =>
+  items.reduce((max, i) => Math.max(max, i.orden ?? 0), 0) + 1;
 
 /* ============================== CURSOS ============================== */
 
@@ -372,11 +404,22 @@ export async function eliminarCurso(cursoId) {
 export const unidadesOrdenadas = (curso) =>
   [...(curso?.unidades ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 
-// Crea la unidad (sin id) o actualiza una existente (con id)
+// Deja las unidades ordenadas y con orden consecutivo (1, 2, 3...),
+// respetando el orden relativo actual
+const renumerarUnidades = (unidades, movido = null) =>
+  [...unidades].sort(porOrden(movido)).map((u, i) => ({ ...u, orden: i + 1 }));
+
+// Crea la unidad (sin id) o actualiza una existente (con id). Si el orden
+// elegido deja huecos, se renumera todo para que quede consecutivo.
 export async function guardarUnidad(cursoId, unidades, { id, titulo, orden }) {
-  const nuevas = id
-    ? unidades.map((u) => (u.id === id ? { ...u, titulo, orden } : u))
-    : [...unidades, { id: siguienteId("u", unidades), titulo, orden }];
+  const actual = unidades.find((u) => u.id === id);
+  const idFinal = id ?? siguienteId("u", unidades);
+  const nuevas = renumerarUnidades(
+    id
+      ? unidades.map((u) => (u.id === id ? { ...u, titulo, orden } : u))
+      : [...unidades, { id: idFinal, titulo, orden }],
+    { id: idFinal, despues: Boolean(actual) && orden > (actual.orden ?? 0) }
+  );
 
   return updateDoc(cursoRef(cursoId), {
     unidades: nuevas,
@@ -384,13 +427,14 @@ export async function guardarUnidad(cursoId, unidades, { id, titulo, orden }) {
   });
 }
 
-// Los nodos de la unidad NO se borran: quedan sin unidad (unidadId: null)
-// y el editor los muestra en "Nodos sin unidad". Primero se quita la unidad
+// Los nodos de la unidad NO se borran: quedan sin unidad (unidadId: null,
+// orden: null) y el editor los muestra en "Nodos sin unidad". Primero se quita la unidad
 // del curso: si algo falla después, los nodos igual aparecen como sin unidad
 // porque apuntan a una unidad que ya no existe.
 export async function eliminarUnidad(cursoId, unidades, unidadId) {
   await updateDoc(cursoRef(cursoId), {
-    unidades: unidades.filter((u) => u.id !== unidadId),
+    // Las unidades que quedan se renumeran (1, 2, 3 y se borra la 2 -> 1, 2)
+    unidades: renumerarUnidades(unidades.filter((u) => u.id !== unidadId)),
     version: increment(1),
   });
 
@@ -401,7 +445,7 @@ export async function eliminarUnidad(cursoId, unidades, unidadId) {
   for (let i = 0; i < afectados.length; i += 400) {
     const batch = writeBatch(db);
     afectados.slice(i, i + 400).forEach((n) => {
-      batch.update(doc(nodosRef(cursoId), n.id), { unidadId: null });
+      batch.update(doc(nodosRef(cursoId), n.id), { unidadId: null, orden: null });
     });
     await batch.commit();
   }
@@ -422,11 +466,31 @@ export async function getNodo(cursoId, nodoId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-// Crea el nodo con contenido vacío del tipo elegido y sube la versión
+// Crea el nodo con contenido vacío del tipo elegido y sube la versión.
+// Un nodo sin unidad no lleva orden. Si el orden elegido deja huecos en la
+// unidad, se renumera para que quede consecutivo.
 export async function crearNodo(cursoId, { unidadId, orden, tipo, titulo }) {
   const ref = doc(nodosRef(cursoId));
   const batch = writeBatch(db);
-  batch.set(ref, { unidadId, orden, tipo, titulo, ...contenidoVacio(tipo) });
+
+  const cambios = unidadId
+    ? renumerar(
+        [...(await getNodos(cursoId)), { id: ref.id, unidadId, orden }],
+        [unidadId],
+        { id: ref.id, despues: false }
+      )
+    : new Map();
+  cambios.forEach((nuevo, id) => {
+    if (id !== ref.id) batch.update(doc(nodosRef(cursoId), id), { orden: nuevo });
+  });
+
+  batch.set(ref, {
+    unidadId: unidadId ?? null,
+    orden: unidadId ? (cambios.get(ref.id) ?? orden) : null,
+    tipo,
+    titulo,
+    ...contenidoVacio(tipo),
+  });
   batch.update(cursoRef(cursoId), { version: increment(1) });
   await batch.commit();
   return ref;
@@ -434,15 +498,57 @@ export async function crearNodo(cursoId, { unidadId, orden, tipo, titulo }) {
 
 // `datos` puede incluir titulo, unidadId, orden y el contenido del tipo.
 // El tipo no se cambia: cada nodo guarda un contenido distinto según su tipo.
+// Si cambia la unidad o el orden, se renumeran la unidad de origen (cierra el
+// hueco) y la de destino (queda consecutiva).
 export async function actualizarNodo(cursoId, nodoId, datos) {
   const batch = writeBatch(db);
-  batch.update(doc(nodosRef(cursoId), nodoId), datos);
+  const final = { ...datos };
+
+  if ("unidadId" in datos || "orden" in datos) {
+    const nodos = await getNodos(cursoId);
+    const actual = nodos.find((n) => n.id === nodoId);
+    const simulados = nodos.map((n) =>
+      n.id === nodoId ? { ...n, ...datos } : n
+    );
+    const destino = "unidadId" in datos ? datos.unidadId : actual?.unidadId;
+    // Si sigue en la misma unidad y sube el número, pasa a ocupar ese lugar
+    // después de los que ya estaban (ej.: 1 -> 5 deja al 5 en el 4)
+    const despues =
+      destino === actual?.unidadId &&
+      Number.isInteger(datos.orden) &&
+      Number.isInteger(actual?.orden) &&
+      datos.orden > actual.orden;
+    const cambios = renumerar(simulados, [actual?.unidadId, destino], {
+      id: nodoId,
+      despues,
+    });
+    cambios.forEach((nuevo, id) => {
+      if (id === nodoId) final.orden = nuevo;
+      else batch.update(doc(nodosRef(cursoId), id), { orden: nuevo });
+    });
+  }
+
+  batch.update(doc(nodosRef(cursoId), nodoId), final);
   batch.update(cursoRef(cursoId), { version: increment(1) });
   await batch.commit();
 }
 
+// Al borrar, los nodos que quedan en la misma unidad se renumeran
+// (1, 2, 3 y se borra el 2 -> 1, 2).
 export async function eliminarNodo(cursoId, nodoId) {
   const batch = writeBatch(db);
+  const nodos = await getNodos(cursoId);
+  const borrado = nodos.find((n) => n.id === nodoId);
+
+  if (borrado?.unidadId) {
+    renumerar(
+      nodos.filter((n) => n.id !== nodoId),
+      [borrado.unidadId]
+    ).forEach((nuevo, id) =>
+      batch.update(doc(nodosRef(cursoId), id), { orden: nuevo })
+    );
+  }
+
   batch.delete(doc(nodosRef(cursoId), nodoId));
   batch.update(cursoRef(cursoId), { version: increment(1) });
   await batch.commit();
