@@ -89,6 +89,45 @@ export function retoVacio(tipo, id) {
   }
 }
 
+// Completa un reto cargado de Firestore que puede venir incompleto (sin id,
+// sin tipo o sin alguno de sus campos) para que el editor nunca falle.
+// `usados` evita ids repetidos dentro del mismo nodo.
+export function normalizarReto(reto, tipoPorDefecto, usados) {
+  const tiposValidos = ["trivia", "emparejar", "ordenar"];
+  const tipo = tiposValidos.includes(reto?.tipo)
+    ? reto.tipo
+    : tiposValidos.includes(tipoPorDefecto)
+      ? tipoPorDefecto
+      : "trivia";
+
+  let id = reto?.id;
+  if (!id || usados.has(id)) {
+    id = siguienteId("r", [...usados].map((u) => ({ id: u })));
+  }
+  usados.add(id);
+
+  const base = retoVacio(tipo, id);
+  const completo = { ...base, ...reto, id, tipo };
+
+  // Los campos de lista deben ser arrays (pueden venir null o con otro tipo)
+  for (const campo of ["respuestas", "pares", "items"]) {
+    if (campo in base && !Array.isArray(completo[campo])) {
+      completo[campo] = base[campo];
+    }
+  }
+  if (tipo === "trivia" && !Number.isInteger(completo.respuesta_correcta_index)) {
+    completo.respuesta_correcta_index = 0;
+  }
+  return completo;
+}
+
+export function normalizarRetos(retos, tipoPorDefecto) {
+  const usados = new Set();
+  return (Array.isArray(retos) ? retos : []).map((r) =>
+    normalizarReto(r, tipoPorDefecto, usados)
+  );
+}
+
 // Contenido inicial de un nodo recién creado, según su tipo
 export function contenidoVacio(tipo) {
   switch (tipo) {

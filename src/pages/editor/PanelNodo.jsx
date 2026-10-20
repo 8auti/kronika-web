@@ -9,6 +9,7 @@ import {
   getCurso,
   getNodo,
   limpiarContenido,
+  normalizarRetos,
   tituloCurso,
   unidadesOrdenadas,
   validarContenido,
@@ -23,18 +24,27 @@ import {
   inputClase,
 } from "../../components/nodos/estilos";
 
-// Solo el contenido propio del tipo (lo demás es metadata del nodo)
+// Solo el contenido propio del tipo (lo demás es metadata del nodo).
+// Se normaliza por si el nodo guardado tiene campos incompletos.
 function extraerContenido(nodo) {
   const base = contenidoVacio(nodo.tipo);
-  if (nodo.tipo === "lectura") return { bloques: nodo.bloques ?? base.bloques };
+
+  if (nodo.tipo === "lectura") {
+    const bloques = Array.isArray(nodo.bloques) ? nodo.bloques : [];
+    return { bloques: bloques.length ? bloques : base.bloques };
+  }
+
+  const retos = normalizarRetos(nodo.retos, nodo.tipo);
+  const retosFinal = retos.length ? retos : base.retos;
+
   if (nodo.tipo === "jefe") {
     return {
       jefe: { ...base.jefe, ...nodo.jefe },
       vidasJugador: nodo.vidasJugador ?? base.vidasJugador,
-      retos: nodo.retos?.length ? nodo.retos : base.retos,
+      retos: retosFinal,
     };
   }
-  return { retos: nodo.retos?.length ? nodo.retos : base.retos };
+  return { retos: retosFinal };
 }
 
 export default function PanelNodo() {
