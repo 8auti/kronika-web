@@ -8,11 +8,13 @@ import {
   etiquetaTipoNodo,
   getCurso,
   getNodo,
+  getNodos,
   limpiarContenido,
   normalizarRetos,
   tituloCurso,
   unidadesOrdenadas,
   validarContenido,
+  validarOrden,
 } from "../../services/cursosService";
 import { useAuth } from "../../auth/useAuth";
 import EditorJefe from "../../components/nodos/EditorJefe";
@@ -58,6 +60,7 @@ export default function PanelNodo() {
   const [aula, setAula] = useState(null);
   const [curso, setCurso] = useState(null);
   const [nodo, setNodo] = useState(null);
+  const [nodos, setNodos] = useState([]); // para validar que el orden no se repita
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -73,17 +76,23 @@ export default function PanelNodo() {
     const cargar = async () => {
       try {
         setCargando(true);
-        const [cursoData, nodoData, aulaData] = await Promise.all([
+        const [cursoData, nodoData, nodosData, aulaData] = await Promise.all([
           getCurso(cursoId),
           getNodo(cursoId, nodoId),
+          getNodos(cursoId),
           aulaId ? getAula(aulaId) : null,
         ]);
         setAula(aulaData);
         setCurso(cursoData);
         setNodo(nodoData);
+        setNodos(nodosData);
         if (nodoData) {
           setTitulo(nodoData.titulo ?? "");
-          setUnidadId(nodoData.unidadId ?? "");
+          // Sin unidad ("") si no tiene o si apunta a una unidad que ya no existe
+          const existe = (cursoData?.unidades ?? []).some(
+            (u) => u.id === nodoData.unidadId
+          );
+          setUnidadId(existe ? nodoData.unidadId : "");
           setOrden(nodoData.orden ?? 1);
           setContenido(extraerContenido(nodoData));
         }
@@ -113,12 +122,11 @@ export default function PanelNodo() {
     setGuardado(false);
 
     const tituloLimpio = titulo.trim();
-    const ordenNum = Number(orden);
 
     if (!tituloLimpio) return setError("El título es obligatorio.");
-    if (!Number.isInteger(ordenNum) || ordenNum < 1)
-      return setError("El orden debe ser un número entero mayor a 0.");
-    if (!unidadId) return setError("Elegí una unidad.");
+    const errorOrden = validarOrden(orden, nodos, nodoId);
+    if (errorOrden) return setError(errorOrden);
+    const ordenNum = Number(orden);
 
     const errorContenido = validarContenido(nodo.tipo, contenido);
     if (errorContenido) return setError(errorContenido);
@@ -127,10 +135,16 @@ export default function PanelNodo() {
       setGuardando(true);
       await actualizarNodo(cursoId, nodoId, {
         titulo: tituloLimpio,
-        unidadId,
+        unidadId: unidadId || null, // null = sin unidad
         orden: ordenNum,
         ...limpiarContenido(nodo.tipo, contenido),
       });
+      // Mantiene al día la lista usada para validar el orden
+      setNodos((prev) =>
+        prev.map((n) =>
+          n.id === nodoId ? { ...n, titulo: tituloLimpio, orden: ordenNum } : n
+        )
+      );
       setGuardado(true);
     } catch (err) {
       console.error(err);
@@ -204,6 +218,7 @@ export default function PanelNodo() {
                   onChange={(e) => setUnidadId(e.target.value)}
                   className={`${inputClase} mt-1`}
                 >
+                  <option value="">Sin unidad</option>
                   {unidades.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.titulo}

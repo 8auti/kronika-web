@@ -270,6 +270,27 @@ export function limpiarContenido(tipo, contenido) {
   return { retos: contenido.retos.map(limpiarReto) };
 }
 
+/* ============================== ORDEN =============================== */
+
+/**
+ * Valida el campo `orden` de una unidad o de un nodo.
+ * - entero mayor o igual a 1
+ * - único: ningún otro elemento de `items` puede tener el mismo orden
+ *   (el mapa se ordena por este número, así que repetirlo deja el orden
+ *   ambiguo). `excluirId` es el elemento que se está editando.
+ * Devuelve un mensaje de error o null.
+ */
+export function validarOrden(valor, items, excluirId = null) {
+  const n = typeof valor === "number" ? valor : Number(String(valor).trim());
+  if (String(valor).trim() === "" || !Number.isInteger(n) || n < 1)
+    return "El orden debe ser un número entero mayor a 0.";
+
+  const choque = items.find((i) => i.id !== excluirId && i.orden === n);
+  if (choque)
+    return `El orden ${n} ya lo usa "${choque.titulo}". Elegí otro número.`;
+  return null;
+}
+
 /* ============================== CURSOS ============================== */
 
 const cursoRef = (cursoId) => doc(db, "cursos", cursoId);
@@ -363,19 +384,27 @@ export async function guardarUnidad(cursoId, unidades, { id, titulo, orden }) {
   });
 }
 
-// Los nodos de una unidad no tienen sentido sin ella: se borran juntos
+// Los nodos de la unidad NO se borran: quedan sin unidad (unidadId: null)
+// y el editor los muestra en "Nodos sin unidad". Primero se quita la unidad
+// del curso: si algo falla después, los nodos igual aparecen como sin unidad
+// porque apuntan a una unidad que ya no existe.
 export async function eliminarUnidad(cursoId, unidades, unidadId) {
-  const nodos = await getNodos(cursoId);
-  await borrarRefs(
-    nodos
-      .filter((n) => n.unidadId === unidadId)
-      .map((n) => doc(nodosRef(cursoId), n.id))
-  );
-
-  return updateDoc(cursoRef(cursoId), {
+  await updateDoc(cursoRef(cursoId), {
     unidades: unidades.filter((u) => u.id !== unidadId),
     version: increment(1),
   });
+
+  const nodos = await getNodos(cursoId);
+  const afectados = nodos.filter((n) => n.unidadId === unidadId);
+
+  // Lotes de hasta 400 operaciones (el máximo de Firestore es 500)
+  for (let i = 0; i < afectados.length; i += 400) {
+    const batch = writeBatch(db);
+    afectados.slice(i, i + 400).forEach((n) => {
+      batch.update(doc(nodosRef(cursoId), n.id), { unidadId: null });
+    });
+    await batch.commit();
+  }
 }
 
 /* ============================== NODOS ============================== */

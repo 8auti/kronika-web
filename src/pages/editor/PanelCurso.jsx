@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 
 import { getAula } from "../../services/aulasService";
 import {
   TIPOS_NODO,
+  actualizarNodo,
   crearNodo,
   eliminarNodo,
   eliminarUnidad,
@@ -14,6 +16,7 @@ import {
   setPublicado,
   tituloCurso,
   unidadesOrdenadas,
+  validarOrden,
 } from "../../services/cursosService";
 import { useAuth } from "../../auth/useAuth";
 import {
@@ -23,6 +26,9 @@ import {
   btnSecundario,
   inputClase,
 } from "../../components/nodos/estilos";
+
+// Clave de la zona "Nodos sin unidad" para el arrastre
+const SIN_UNIDAD = "sin-unidad";
 
 // Mapa del curso: unidades (array del doc del curso) con sus nodos
 // (subcolección). Se arma con 2 lecturas: el curso y sus nodos.
@@ -44,8 +50,14 @@ export default function PanelCurso() {
 
   // Formulario de unidad (id = editando; null = nueva)
   const [formUnidad, setFormUnidad] = useState(null);
-  // Formulario de nodo nuevo
+  // Formulario de nodo nuevo (unidadId null = sin unidad)
   const [formNodo, setFormNodo] = useState(null);
+
+  // Unidades desplegadas (por defecto todas cerradas)
+  const [abiertas, setAbiertas] = useState(() => new Set());
+  // Arrastre: id del nodo que se arrastra y zona sobre la que está
+  const [arrastrando, setArrastrando] = useState(null);
+  const [destino, setDestino] = useState(null);
 
   const cargar = async () => {
     try {
@@ -81,8 +93,9 @@ export default function PanelCurso() {
   const noExiste = !cargando && !sinAcceso && !curso;
 
   const unidades = unidadesOrdenadas(curso);
-  const nodosDe = (unidadId) => nodos.filter((n) => n.unidadId === unidadId);
   const idsUnidades = new Set(unidades.map((u) => u.id));
+  const nodosDe = (unidadId) => nodos.filter((n) => n.unidadId === unidadId);
+  // Sin unidad: unidadId null/ausente, o apuntando a una unidad que ya no existe
   const huerfanos = nodos.filter((n) => !idsUnidades.has(n.unidadId));
 
   const siguienteOrdenNodo = () =>
@@ -104,6 +117,14 @@ export default function PanelCurso() {
       setGuardando(false);
     }
   };
+
+  const alternarUnidad = (id) =>
+    setAbiertas((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
 
   /* ------------------------------ Publicar ------------------------------ */
 
@@ -128,18 +149,17 @@ export default function PanelCurso() {
   const guardarFormUnidad = async (e) => {
     e.preventDefault();
     const titulo = formUnidad.titulo.trim();
-    const orden = Number(formUnidad.orden);
 
     if (!titulo) return setError("El título de la unidad es obligatorio.");
-    if (!Number.isInteger(orden) || orden < 1)
-      return setError("El orden debe ser un número entero mayor a 0.");
+    const errorOrden = validarOrden(formUnidad.orden, unidades, formUnidad.id);
+    if (errorOrden) return setError(errorOrden);
 
     await ejecutar(
       () =>
         guardarUnidad(cursoId, curso.unidades ?? [], {
           id: formUnidad.id,
           titulo,
-          orden,
+          orden: Number(formUnidad.orden),
         }),
       "No se pudo guardar la unidad."
     );
@@ -149,7 +169,7 @@ export default function PanelCurso() {
   const borrarUnidad = async (u) => {
     const cantidad = nodosDe(u.id).length;
     const aviso = cantidad
-      ? ` Se borrarán también sus ${cantidad} nodo${cantidad === 1 ? "" : "s"}.`
+      ? ` Sus ${cantidad} nodo${cantidad === 1 ? "" : "s"} no se borran: pasan a "Nodos sin unidad".`
       : "";
     if (!window.confirm(`¿Eliminar la unidad "${u.titulo}"?${aviso}`)) return;
 
@@ -174,16 +194,19 @@ export default function PanelCurso() {
   const guardarFormNodo = async (e) => {
     e.preventDefault();
     const titulo = formNodo.titulo.trim();
-    const orden = Number(formNodo.orden);
 
     if (!titulo) return setError("El título del nodo es obligatorio.");
-    if (!Number.isInteger(orden) || orden < 1)
-      return setError("El orden debe ser un número entero mayor a 0.");
+    const errorOrden = validarOrden(formNodo.orden, nodos);
+    if (errorOrden) return setError(errorOrden);
 
     try {
       setError("");
       setGuardando(true);
-      const ref = await crearNodo(cursoId, { ...formNodo, titulo, orden });
+      const ref = await crearNodo(cursoId, {
+        ...formNodo,
+        titulo,
+        orden: Number(formNodo.orden),
+      });
       // Se crea vacío y se abre el editor para cargar su contenido
       navigate(`${rutaCursos}/${cursoId}/nodos/${ref.id}`);
     } catch (err) {
@@ -201,15 +224,82 @@ export default function PanelCurso() {
     );
   };
 
+  /* --------------------------- Arrastrar nodos --------------------------- */
+
+  // Handlers de una zona de destino (unidad o "sin unidad").
+  // `unidadId` es el valor que se guarda en el nodo (null = sin unidad).
+  const zona = (clave, unidadId) => ({
+    onDragOver: (e) => {
+      if (!puedeEditar || !arrastrando) return;
+      e.preventDefault(); // necesario para poder soltar
+      e.dataTransfer.dropEffect = "move";
+      if (destino !== clave) setDestino(clave);
+    },
+    onDragLeave: (e) => {
+      // Ignora el "leave" al pasar por encima de un hijo de la zona
+      if (!e.currentTarget.contains(e.relatedTarget)) setDestino(null);
+    },
+    onDrop: (e) => {
+      e.preventDefault();
+      soltarNodo(unidadId);
+    },
+  });
+
+  const soltarNodo = async (unidadId) => {
+    const id = arrastrando;
+    setArrastrando(null);
+    setDestino(null);
+
+    const nodo = nodos.find((n) => n.id === id);
+    if (!nodo || (nodo.unidadId ?? null) === unidadId) return;
+
+    // Actualización optimista; si falla se vuelve al estado anterior
+    const anteriores = nodos;
+    setNodos((prev) => prev.map((n) => (n.id === id ? { ...n, unidadId } : n)));
+    if (unidadId) setAbiertas((prev) => new Set(prev).add(unidadId));
+
+    try {
+      setError("");
+      await actualizarNodo(cursoId, id, { unidadId });
+      setCurso((c) => ({ ...c, version: (c.version ?? 1) + 1 }));
+    } catch (e) {
+      console.error(e);
+      setNodos(anteriores);
+      setError("No se pudo mover el nodo.");
+    }
+  };
+
+  const claseZona = (clave, base) =>
+    `${base} ${destino === clave ? "ring-2 ring-indigo-400" : ""}`;
+
   /* ------------------------------ Render -------------------------------- */
 
   const renderNodo = (n) => (
     <li
       key={n.id}
+      draggable={puedeEditar}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", n.id);
+        setArrastrando(n.id);
+      }}
+      onDragEnd={() => {
+        setArrastrando(null);
+        setDestino(null);
+      }}
       onClick={() => navigate(`${rutaCursos}/${cursoId}/nodos/${n.id}`)}
-      className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 transition hover:shadow-md"
+      className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 transition hover:shadow-md ${
+        arrastrando === n.id ? "opacity-40" : ""
+      }`}
     >
       <div className="flex items-center gap-3">
+        {puedeEditar && (
+          <GripVertical
+            size={18}
+            className="shrink-0 cursor-grab text-gray-400"
+            aria-label="Arrastrar para mover a otra unidad"
+          />
+        )}
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700">
           {n.orden}
         </span>
@@ -420,8 +510,9 @@ export default function PanelCurso() {
 
               <p className="text-xs text-gray-500">
                 Unidad:{" "}
-                {unidades.find((u) => u.id === formNodo.unidadId)?.titulo}.
-                Después de crearlo vas a poder cargar su contenido.
+                {unidades.find((u) => u.id === formNodo.unidadId)?.titulo ??
+                  "Sin unidad"}
+                . Después de crearlo vas a poder cargar su contenido.
               </p>
 
               <div className="flex gap-2">
@@ -444,72 +535,135 @@ export default function PanelCurso() {
           )}
 
           {!cargando && unidades.length === 0 && (
-            <p className="text-gray-500">
+            <p className="mb-4 text-gray-500">
               Este curso todavía no tiene unidades.
               {puedeEditar && " Creá una para empezar a agregar nodos."}
             </p>
           )}
 
-          <div className="space-y-6">
+          {puedeEditar && unidades.length > 0 && nodos.length > 0 && (
+            <p className="mb-3 text-xs text-gray-500">
+              Tip: arrastrá un nodo (⋮⋮) hasta una unidad, o hasta "Nodos sin
+              unidad", para moverlo.
+            </p>
+          )}
+
+          <div className="space-y-4">
             {unidades.map((u) => {
               const nodosU = nodosDe(u.id);
+              const abierta = abiertas.has(u.id);
+              const clave = `u:${u.id}`;
+
               return (
                 <section
                   key={u.id}
-                  className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                  {...zona(clave, u.id)}
+                  className={claseZona(
+                    clave,
+                    "rounded-xl border border-gray-200 bg-gray-50 p-4"
+                  )}
                 >
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      <span className="mr-2 text-sm font-normal text-gray-500">
-                        Unidad {u.orden}
+                  <h2>
+                    <button
+                      type="button"
+                      onClick={() => alternarUnidad(u.id)}
+                      aria-expanded={abierta}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <span className="flex items-center gap-2">
+                        {abierta ? (
+                          <ChevronDown size={20} className="text-gray-500" />
+                        ) : (
+                          <ChevronRight size={20} className="text-gray-500" />
+                        )}
+                        <span className="text-sm font-normal text-gray-500">
+                          Unidad {u.orden}
+                        </span>
+                        <span className="text-lg font-semibold text-gray-900">
+                          {u.titulo}
+                        </span>
                       </span>
-                      {u.titulo}
-                    </h2>
+                      <span className="text-xs text-gray-500">
+                        {nodosU.length} nodo{nodosU.length === 1 ? "" : "s"}
+                      </span>
+                    </button>
+                  </h2>
 
-                    {puedeEditar && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => abrirNodoNuevo(u.id)}
-                          className={btnPrimario}
-                        >
-                          + Nodo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => abrirUnidadEdicion(u)}
-                          className={btnEditar}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => borrarUnidad(u)}
-                          className={btnPeligro}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {abierta && (
+                    <div className="mt-3">
+                      {puedeEditar && (
+                        <div className="mb-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => abrirNodoNuevo(u.id)}
+                            className={btnPrimario}
+                          >
+                            + Nodo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => abrirUnidadEdicion(u)}
+                            className={btnEditar}
+                          >
+                            Editar unidad
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => borrarUnidad(u)}
+                            className={btnPeligro}
+                          >
+                            Eliminar unidad
+                          </button>
+                        </div>
+                      )}
 
-                  {nodosU.length === 0 ? (
-                    <p className="text-sm text-gray-500">
-                      Esta unidad todavía no tiene nodos.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">{nodosU.map(renderNodo)}</ul>
+                      {nodosU.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          Esta unidad todavía no tiene nodos.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">{nodosU.map(renderNodo)}</ul>
+                      )}
+                    </div>
                   )}
                 </section>
               );
             })}
 
-            {huerfanos.length > 0 && (
-              <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <h2 className="mb-3 text-lg font-semibold text-amber-800">
-                  Nodos sin unidad
-                </h2>
-                <ul className="space-y-2">{huerfanos.map(renderNodo)}</ul>
+            {/* Siempre visible para el editor: sirve de destino al arrastrar */}
+            {(puedeEditar || huerfanos.length > 0) && (
+              <section
+                {...zona(SIN_UNIDAD, null)}
+                className={claseZona(
+                  SIN_UNIDAD,
+                  "rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4"
+                )}
+              >
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-lg font-semibold text-amber-800">
+                    Nodos sin unidad
+                    <span className="ml-2 text-xs font-normal text-amber-700">
+                      {huerfanos.length} nodo{huerfanos.length === 1 ? "" : "s"}
+                    </span>
+                  </h2>
+                  {puedeEditar && (
+                    <button
+                      type="button"
+                      onClick={() => abrirNodoNuevo(null)}
+                      className={btnEditar}
+                    >
+                      + Nodo
+                    </button>
+                  )}
+                </div>
+
+                {huerfanos.length === 0 ? (
+                  <p className="text-sm text-amber-700">
+                    Arrastrá un nodo hasta acá para dejarlo sin unidad.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">{huerfanos.map(renderNodo)}</ul>
+                )}
               </section>
             )}
           </div>
