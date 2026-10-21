@@ -19,7 +19,7 @@ import {
 import { app, db } from "../firebase";
 
 // Roles que el admin puede crear y editar
-export const ROLES = ["admin", "editor", "institucion"];
+export const ROLES = ["usuario", "admin", "editor", "institucion"];
 
 // Roles que gestiona cada institución (el admin solo puede suspenderlos)
 export const ROLES_INSTITUCION = ["profesor", "alumno"];
@@ -31,6 +31,27 @@ export const ESTADOS = {
   ACTIVO: "activo",
   BANEADO: "suspendido",
 };
+
+// Dashboard de inicio de cada rol con acceso
+export const RUTA_INICIO_POR_ROL = {
+  admin: "/usuarios",
+  institucion: "/organizacion",
+  editor: "/cursos",
+  profesor: "/aulas",
+};
+
+// Rol de quien se registra solo: no está en ROLES_CON_ACCESO,
+export const ROL_REGISTRO = "usuario";
+
+export async function crearPerfilPropio(uid, { nombre, email }) {
+  await setDoc(doc(db, "users", uid), {
+    nombre: nombre.trim(),
+    email: email.trim(),
+    rol: ROL_REGISTRO,
+    estado: ESTADOS.ACTIVO,
+    creadoEn: serverTimestamp(),
+  });
+}
 
 /**
  * Indica si un perfil de Firestore está baneado. También reconoce el
@@ -199,4 +220,12 @@ export async function cambiarEstadoUsuario(uid, estado) {
     estado,
     activo: deleteField(),
   });
+}
+
+export function rutaInicio(rol) {
+  if (!ROLES_CON_ACCESO.includes(rol)) {
+    return "/sin-acceso";
+  }
+
+  return RUTA_INICIO_POR_ROL[rol] ?? "/landing";
 }

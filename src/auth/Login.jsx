@@ -9,7 +9,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
  
 import { auth, db } from "../firebase";
 import {
@@ -17,6 +17,7 @@ import {
   estaBaneado,
 } from "../services/usuariosService";
 import { useAuth } from "./useAuth.jsx"; 
+import { rutaInicio } from "../services/usuariosService";   // sumarlo al import existente
  
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
@@ -117,8 +118,8 @@ export default function Login() {
       setError("Tu cuenta fue suspendida. Contactá al administrador.");
       return;
     }
- 
-    navigate(ROLES_CON_ACCESO.includes(datos.rol) ? "/landing" : "/sin-acceso");
+    
+    navigate(rutaInicio(datos.rol));
   }
  
   async function handleSubmit(event) {
@@ -206,7 +207,7 @@ export default function Login() {
  
   // Si ya hay sesión activa, no se puede acceder al login
   if (usuario && ROLES_CON_ACCESO.includes(rol)) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to={rutaInicio(rol)} replace />;
   }
  
   return (
@@ -219,19 +220,19 @@ export default function Login() {
           <h1 className="mb-6 text-2xl font-bold text-gray-900">
             {modoReset ? "Restablecer contraseña" : "Iniciar sesión"}
           </h1>
- 
+
           {modoReset && (
             <p className="mb-4 text-sm text-gray-600">
               Ingresá tu correo y te enviaremos un enlace para crear una nueva
               contraseña.
             </p>
           )}
- 
+
           <div className="mb-4">
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Correo electrónico
             </label>
- 
+
             <input
               type="email"
               value={email}
@@ -241,13 +242,13 @@ export default function Login() {
               required
             />
           </div>
- 
+
           {!modoReset && (
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Contraseña
               </label>
- 
+
               <input
                 type="password"
                 value={password}
@@ -256,7 +257,7 @@ export default function Login() {
                 placeholder="••••••••"
                 required
               />
- 
+
               <div className="mt-2 text-right">
                 <button
                   type="button"
@@ -268,19 +269,19 @@ export default function Login() {
               </div>
             </div>
           )}
- 
+
           {error && (
             <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
               {error}
             </p>
           )}
- 
+
           {aviso && (
             <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">
               {aviso}
             </p>
           )}
- 
+
           <button
             type="submit"
             disabled={cargando}
@@ -294,7 +295,7 @@ export default function Login() {
                 ? "Ingresando..."
                 : "Iniciar sesión"}
           </button>
- 
+
           {modoReset && (
             <button
               type="button"
@@ -304,41 +305,51 @@ export default function Login() {
               Volver a iniciar sesión
             </button>
           )}
- 
+
           {!modoReset && (
             <>
-            <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
-              <span className="h-px flex-1 bg-gray-200" />
-              o
-              <span className="h-px flex-1 bg-gray-200" />
-            </div>
- 
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={cargando}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
-                <path
-                  fill="#EA4335"
-                  d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"
-                />
-              </svg>
-              {cargando ? "Ingresando..." : "Continuar con Google"}
-            </button>
+              <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
+                <span className="h-px flex-1 bg-gray-200" />
+                o
+                <span className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={cargando}
+                className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"
+                  />
+                </svg>
+                {cargando ? "Ingresando..." : "Continuar con Google"}
+              </button>
+
+              <p className="mt-6 text-center text-sm text-gray-600">
+                ¿No tenés cuenta?{" "}
+                <Link
+                  to="/registro"
+                  className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  Crear cuenta
+                </Link>
+              </p>
             </>
           )}
         </form>

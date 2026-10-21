@@ -2,9 +2,9 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/useAuth.jsx";
 
 import Login from "./auth/Login";
+import Registro from "./auth/Registro.jsx";
 import RutaProtegida from "./auth/RutaProtegida";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer.jsx";
 import DashboardShell from "./components/DashboardShell.jsx";
 import { ROLES_CON_DASHBOARD } from "./config/menuPorRol.js";
 
@@ -27,7 +27,6 @@ function MainLayout() {
     <>
       {!cargando && <Navbar rol={usuario ? rol : null} />}
       <Outlet />
-      <Footer />
     </>
   );
 }
@@ -41,6 +40,7 @@ export default function App() {
         <Route path="/landing" element={<Landing />} />
         <Route path="/sin-acceso" element={<SinAcceso />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
 
         {/* Dashboard: navbar arriba + sidebar al costado.
             Entra cualquier rol con dashboard; cada grupo restringe a su rol. */}
