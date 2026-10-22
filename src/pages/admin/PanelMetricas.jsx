@@ -18,7 +18,6 @@ import { db } from '../../firebase'; // tu archivo de inicialización de Firebas
 
 // ───────────── Configuración ─────────────
 
-// Colecciones de las que solo quieres saber "cuántos hay"
 const COLECCIONES = [
   'aulas',
   'cursos',
@@ -30,12 +29,11 @@ const COLECCIONES = [
   'combates',
   'progreso',
   'instituciones',
-  'inscripcion_a', // ← ajusta al nombre completo (aparece cortado en la consola)
-  'gemas_transac', // ← ajusta al nombre completo (aparece cortado en la consola)
+  'inscripcion_a', // ← ajusta al nombre completo
+  'gemas_transac', // ← ajusta al nombre completo
 ];
 
-// Campo de fecha de registro en los documentos de `users` (Timestamp de Firestore).
-// Sin este campo no se pueden hacer gráficas en el tiempo.
+// Campo de fecha de registro en `users` (Timestamp de Firestore)
 const CAMPO_FECHA = 'creadoEn';
 const DIAS = 30;
 
@@ -45,10 +43,10 @@ const PIE_COLORES = ['#4f46e5', '#818cf8', '#c7d2fe', '#e0e7ff'];
 
 // ───────────── Utilidades ─────────────
 
-function agrupar(lista, campo) {
+function agrupar(lista, campo, vacio = 'sin dato') {
   const conteo = {};
   lista.forEach((item) => {
-    const clave = item[campo] ?? 'sin dato';
+    const clave = item[campo] ?? vacio;
     conteo[clave] = (conteo[clave] || 0) + 1;
   });
   return Object.entries(conteo)
@@ -68,7 +66,7 @@ const claveDia = (d) =>
     d.getDate()
   ).padStart(2, '0')}`;
 
-// Usuarios nuevos por día: últimos 30 días vs los 30 anteriores (alineados día a día)
+// Registros por día: últimos 30 días vs los 30 anteriores (alineados día a día)
 function serieRegistros(users) {
   const porDia = {};
   users.forEach((u) => {
@@ -118,8 +116,8 @@ export default function Metricas() {
           }
         })
       );
+      conteos.sort((a, b) => b.total - a.total);
 
-      // Distribución de vidas (0, 1, 2, 3...)
       const vidasMap = {};
       users.forEach((u) => {
         const v = Number(u.vidas) || 0;
@@ -132,6 +130,7 @@ export default function Metricas() {
 
       const vidasTotal = users.reduce((a, u) => a + (Number(u.vidas) || 0), 0);
       const serie = serieRegistros(users);
+      const serieActivos = serieRegistros(users.filter((u) => u.estado === 'activo'));
       const nuevos = serie.reduce((a, d) => a + d.actual, 0);
       const nuevosAnt = serie.reduce((a, d) => a + d.anterior, 0);
 
@@ -141,14 +140,15 @@ export default function Metricas() {
         promedioVidas: users.length ? (vidasTotal / users.length).toFixed(1) : 0,
         tieneFechas: users.some((u) => aFecha(u[CAMPO_FECHA])),
         serie,
+        serieActivos,
         nuevos,
         variacion: nuevosAnt > 0 ? (((nuevos - nuevosAnt) / nuevosAnt) * 100).toFixed(1) : null,
-        porPlan: agrupar(users, 'plan'),
-        porEstado: agrupar(users, 'estado'),
-        porRol: agrupar(users, 'rol'),
+        porPlan: agrupar(users, 'plan', 'sin plan'),
+        porRol: agrupar(users, 'rol', 'sin rol'),
         porVidas,
-        conteos: conteos.sort((a, b) => b.total - a.total),
-        cursos: conteos.find((c) => c.nombre === 'cursos')?.total ?? 0,
+        conteos,
+        totalDocs: conteos.reduce((a, c) => a + c.total, 0),
+        coleccionesConDatos: conteos.filter((c) => c.total > 0).length,
         actualizado: new Date().toLocaleString(),
       });
     } catch (e) {
@@ -163,138 +163,205 @@ export default function Metricas() {
     cargar();
   }, [cargar]);
 
+  const d = datos;
+  const ultimos = (serie) => serie.slice(-10).map((x) => x.actual);
+  const indiceMax = (arr) => arr.indexOf(Math.max(...arr));
+
   return (
-    <div className="mx-auto max-w-7xl p-6">
-      <div>
-        <header className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Métricas</h1>
-            {datos && <p className="mt-0.5 text-sm text-slate-500">Actualizado: {datos.actualizado}</p>}
-          </div>
-          <button
-            onClick={cargar}
-            disabled={cargando}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-default disabled:opacity-60"
-          >
-            {cargando ? 'Actualizando…' : 'Actualizar'}
-          </button>
-        </header>
+    <div className="min-w-0 text-slate-900">
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">Métricas</h1>
+          {d && <p className="mt-0.5 text-sm text-slate-500">Actualizado: {d.actualizado}</p>}
+        </div>
+        <button
+          onClick={cargar}
+          disabled={cargando}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-default disabled:opacity-60"
+        >
+          {cargando ? 'Actualizando…' : 'Actualizar'}
+        </button>
+      </header>
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-        {!datos && !error && <p className="py-10 text-sm text-slate-500">Cargando métricas…</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+      {!d && !error && <p className="py-10 text-sm text-slate-500">Cargando métricas…</p>}
 
-        {datos && (
-          <div className="space-y-4">
-            {/* KPIs */}
-            <section className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-              <Kpi
-                titulo="Usuarios"
-                valor={datos.totalUsuarios}
-                pie={
-                  datos.tieneFechas
-                    ? `${datos.nuevos} nuevos en ${DIAS} días`
-                    : 'Total registrados'
-                }
-                variacion={datos.variacion}
-                sparkline={datos.tieneFechas ? datos.serie.slice(-12) : null}
-              />
-              <Kpi
-                titulo="Usuarios activos"
-                valor={datos.activos}
-                pie={`${
-                  datos.totalUsuarios ? Math.round((datos.activos / datos.totalUsuarios) * 100) : 0
-                }% del total`}
-              />
-              <Kpi titulo="Vidas promedio" valor={datos.promedioVidas} pie="Por usuario" />
-              <Kpi titulo="Cursos" valor={datos.cursos} pie="Publicados en la plataforma" />
-            </section>
+      {d && (
+        <div className="space-y-4">
+          {/* KPIs: misma estructura en las cuatro */}
+          <section className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-4">
+            <Kpi
+              titulo="Usuarios"
+              valor={d.totalUsuarios}
+              variacion={d.variacion}
+              pie={d.tieneFechas ? `${d.nuevos} nuevos en ${DIAS} días` : 'Total registrados'}
+              barras={d.tieneFechas ? ultimos(d.serie) : []}
+              resaltar={9}
+            />
+            <Kpi
+              titulo="Usuarios activos"
+              valor={d.activos}
+              pie={`${d.totalUsuarios ? Math.round((d.activos / d.totalUsuarios) * 100) : 0}% del total`}
+              barras={d.tieneFechas ? ultimos(d.serieActivos) : []}
+              resaltar={9}
+            />
+            <Kpi
+              titulo="Vidas promedio"
+              valor={d.promedioVidas}
+              pie="Por usuario"
+              barras={d.porVidas.map((v) => v.total)}
+              resaltar={indiceMax(d.porVidas.map((v) => v.total))}
+            />
+            <Kpi
+              titulo="Documentos"
+              valor={d.totalDocs}
+              pie={`En ${d.coleccionesConDatos} colecciones`}
+              barras={d.conteos.slice(0, 6).map((c) => c.total)}
+              resaltar={0}
+            />
+          </section>
 
-            {/* Línea + Donut */}
-            <section className="flex flex-wrap gap-4">
-              <Tarjeta
-                className="min-w-[320px] flex-[2]"
-                titulo="Usuarios nuevos"
-                subtitulo={`Últimos ${DIAS} días vs. los ${DIAS} anteriores`}
-              >
-                {datos.tieneFechas ? <GraficaLinea data={datos.serie} /> : <SinFechas />}
-              </Tarjeta>
+          {/* Tendencia + plan */}
+          <section className="flex flex-wrap gap-4">
+            <Tarjeta
+              className="min-w-[340px] flex-[2]"
+              titulo="Usuarios nuevos"
+              subtitulo={`Últimos ${DIAS} días vs. los ${DIAS} anteriores`}
+            >
+              {d.tieneFechas ? (
+                <>
+                  <p className="mb-2 text-3xl font-semibold tabular-nums">{d.nuevos}</p>
+                  <ChartBox min={240}>
+                    <GraficaLinea data={d.serie} />
+                  </ChartBox>
+                  <div className="mt-3 flex gap-5 text-xs text-slate-500">
+                    <Leyenda color={INDIGO} texto="Este periodo" />
+                    <Leyenda color={INDIGO_SUAVE} texto="Periodo anterior" />
+                  </div>
+                </>
+              ) : (
+                <SinFechas />
+              )}
+            </Tarjeta>
 
-              <Tarjeta className="min-w-[260px] flex-1" titulo="Usuarios por plan" subtitulo="Distribución actual">
-                <Donut data={datos.porPlan} total={datos.totalUsuarios} />
-              </Tarjeta>
-            </section>
+            <Tarjeta
+              className="min-w-[280px] flex-1"
+              titulo="Usuarios por plan"
+              subtitulo={`${d.totalUsuarios} usuarios en total`}
+            >
+              <ChartBox min={200}>
+                <Donut data={d.porPlan} total={d.totalUsuarios} />
+              </ChartBox>
+              <div className="mt-4">
+                <Resumen data={d.porPlan} colores />
+              </div>
+            </Tarjeta>
+          </section>
 
-            {/* Tres tarjetas */}
-            <section className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-              <Tarjeta titulo="Vidas por usuario" subtitulo="Cuántos usuarios tienen cada cantidad">
-                <BarrasVidas data={datos.porVidas} />
-              </Tarjeta>
+          {/* Tres tarjetas que llenan su alto */}
+          <section className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
+            <Tarjeta titulo="Vidas por usuario" subtitulo="Cuántos usuarios tienen cada cantidad">
+              <ChartBox min={200}>
+                <BarrasVidas data={d.porVidas} />
+              </ChartBox>
+            </Tarjeta>
 
-              <Tarjeta titulo="Estado de cuentas" subtitulo="Usuarios por estado">
-                <Resumen data={datos.porEstado} />
-              </Tarjeta>
+            <Tarjeta titulo="Estado de cuentas" subtitulo="Porcentaje de usuarios activos">
+              <Gauge activos={d.activos} total={d.totalUsuarios} />
+            </Tarjeta>
 
-              <Tarjeta titulo="Roles" subtitulo="Usuarios por rol">
-                <DotPlot data={datos.porRol} />
-              </Tarjeta>
-            </section>
+            <Tarjeta titulo="Roles" subtitulo="Usuarios por rol">
+              <DotPlot data={d.porRol} />
+            </Tarjeta>
+          </section>
 
-            {/* Contenido */}
-            <section>
-              <Tarjeta titulo="Contenido" subtitulo="Documentos por colección">
-                <DotPlot data={datos.conteos} />
-              </Tarjeta>
-            </section>
-          </div>
-        )}
-      </div>
+          {/* Contenido en dos columnas para aprovechar el ancho */}
+          <Tarjeta titulo="Contenido" subtitulo="Documentos por colección">
+            <DotPlot data={d.conteos} columnas />
+          </Tarjeta>
+        </div>
+      )}
     </div>
   );
 }
 
-// ───────────── Layout ─────────────
+// ───────────── Estructura ─────────────
 
 function Tarjeta({ titulo, subtitulo, className = '', children }) {
   return (
-    <div className={`rounded-2xl bg-white p-5 shadow-sm ${className}`}>
+    <div className={`flex flex-col rounded-2xl bg-white p-5 shadow-sm ${className}`}>
       <h2 className="text-sm font-semibold text-slate-800">{titulo}</h2>
       {subtitulo && <p className="mb-4 mt-0.5 text-xs text-slate-400">{subtitulo}</p>}
-      {children}
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }
 
-function Kpi({ titulo, valor, pie, variacion, sparkline }) {
+// Caja que se estira para ocupar todo el espacio libre de la tarjeta
+function ChartBox({ min = 200, children }) {
+  return (
+    <div className="relative flex-1" style={{ minHeight: min }}>
+      <div className="absolute inset-0">{children}</div>
+    </div>
+  );
+}
+
+function Kpi({ titulo, valor, pie, variacion, barras = [], resaltar = 0 }) {
   const positiva = variacion !== null && variacion !== undefined && Number(variacion) >= 0;
-  const maxSpark = sparkline ? Math.max(...sparkline.map((d) => d.actual), 1) : 1;
+  const max = Math.max(...barras, 1);
 
   return (
-    <div className="flex items-end justify-between gap-3 rounded-2xl bg-white p-5 shadow-sm">
-      <div>
-        <p className="text-xs text-slate-500">{titulo}</p>
-        <p className="mt-2 text-3xl font-semibold tabular-nums">{valor}</p>
-        <p className="mt-2 text-xs text-slate-400">
-          {variacion !== null && variacion !== undefined && (
-            <span className={`mr-1 font-medium ${positiva ? 'text-indigo-600' : 'text-rose-500'}`}>
-              {positiva ? '+' : ''}
-              {variacion}%
-            </span>
-          )}
-          {pie}
-        </p>
-      </div>
+    <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm">
+      <p className="text-xs text-slate-500">{titulo}</p>
 
-      {sparkline && (
-        <div className="flex h-14 items-end gap-1" aria-hidden="true">
-          {sparkline.map((d, i) => (
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-3xl font-semibold tabular-nums">{valor}</p>
+          <p className="mt-2 text-xs text-slate-400">
+            {variacion !== null && variacion !== undefined && (
+              <span className={`mr-1 font-medium ${positiva ? 'text-indigo-600' : 'text-rose-500'}`}>
+                {positiva ? '+' : ''}
+                {variacion}%
+              </span>
+            )}
+            {pie}
+          </p>
+        </div>
+
+        <div className="flex h-14 shrink-0 items-end gap-1" aria-hidden="true">
+          {barras.map((v, i) => (
             <div
               key={i}
-              className={`w-2 rounded-sm ${i === sparkline.length - 1 ? 'bg-indigo-600' : 'bg-indigo-200'}`}
-              style={{ height: `${Math.max((d.actual / maxSpark) * 100, 8)}%` }}
+              className={`w-2 rounded-sm bg-gradient-to-b ${
+                i === resaltar ? 'from-indigo-600 to-indigo-300' : 'from-indigo-200 to-indigo-50'
+              }`}
+              style={{ height: `${Math.max((v / max) * 100, 8)}%` }}
             />
           ))}
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+function Leyenda({ color, texto }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+      {texto}
+    </span>
+  );
+}
+
+function SinFechas() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+      <p className="font-medium text-slate-700">Aún no hay fechas de registro</p>
+      <p className="mt-1">
+        Agrega el campo <code className="rounded bg-slate-100 px-1">{CAMPO_FECHA}</code> (Timestamp)
+        a los documentos de <code className="rounded bg-slate-100 px-1">users</code> para ver esta
+        gráfica.
+      </p>
     </div>
   );
 }
@@ -310,111 +377,76 @@ const tooltipStyle = {
 };
 const tick = { fill: '#94a3b8', fontSize: 11 };
 
-// Tendencia en el tiempo → línea, periodo actual vs anterior
+// Tendencia: línea, periodo actual vs anterior
 function GraficaLinea({ data }) {
   return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data} margin={{ left: -18, right: 8, top: 8 }}>
+        <CartesianGrid vertical={false} stroke="#e8ecf3" strokeDasharray="4 4" />
+        <XAxis dataKey="dia" tick={tick} axisLine={false} tickLine={false} minTickGap={28} />
+        <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} />
+        <Tooltip contentStyle={tooltipStyle} />
+        <Line
+          type="monotone"
+          dataKey="anterior"
+          name="Periodo anterior"
+          stroke={INDIGO_SUAVE}
+          strokeWidth={2}
+          dot={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="actual"
+          name="Este periodo"
+          stroke={INDIGO}
+          strokeWidth={2.5}
+          dot={false}
+          activeDot={{ r: 5, fill: '#fff', stroke: INDIGO, strokeWidth: 2 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Partes de un todo → dona que se adapta al alto disponible
+function Donut({ data, total }) {
+  return (
     <>
-      <ResponsiveContainer width="100%" height={260}>
-        <LineChart data={data} margin={{ left: -16, right: 8, top: 8 }}>
-          <CartesianGrid vertical={false} stroke="#eef2f7" />
-          <XAxis dataKey="dia" tick={tick} axisLine={false} tickLine={false} minTickGap={28} />
-          <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} />
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="total"
+            nameKey="nombre"
+            cx="50%"
+            cy="50%"
+            innerRadius="68%"
+            outerRadius="92%"
+            paddingAngle={data.length > 1 ? 3 : 0}
+            stroke="none"
+          >
+            {data.map((_, i) => (
+              <Cell key={i} fill={PIE_COLORES[i % PIE_COLORES.length]} />
+            ))}
+          </Pie>
           <Tooltip contentStyle={tooltipStyle} />
-          <Line
-            type="monotone"
-            dataKey="anterior"
-            name="Periodo anterior"
-            stroke={INDIGO_SUAVE}
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="actual"
-            name="Este periodo"
-            stroke={INDIGO}
-            strokeWidth={2.5}
-            dot={false}
-          />
-        </LineChart>
+        </PieChart>
       </ResponsiveContainer>
-      <div className="mt-3 flex gap-5 text-xs text-slate-500">
-        <Leyenda color={INDIGO} texto="Este periodo" />
-        <Leyenda color={INDIGO_SUAVE} texto="Periodo anterior" />
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-semibold tabular-nums">{total}</span>
+        <span className="text-xs text-slate-400">usuarios</span>
       </div>
     </>
   );
 }
 
-function Leyenda({ color, texto }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-      {texto}
-    </span>
-  );
-}
-
-function SinFechas() {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-      <p className="font-medium text-slate-700">Aún no hay fechas de registro</p>
-      <p className="mt-1">
-        Agrega el campo <code className="rounded bg-slate-100 px-1">{CAMPO_FECHA}</code> (Timestamp)
-        a los documentos de <code className="rounded bg-slate-100 px-1">users</code> para ver esta
-        gráfica.
-      </p>
-    </div>
-  );
-}
-
-// Partes de un todo (pocas categorías) → donut
-function Donut({ data, total }) {
-  return (
-    <div>
-      <div className="relative mx-auto h-44 w-44">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="total"
-              nameKey="nombre"
-              innerRadius={58}
-              outerRadius={82}
-              paddingAngle={data.length > 1 ? 3 : 0}
-              stroke="none"
-            >
-              {data.map((_, i) => (
-                <Cell key={i} fill={PIE_COLORES[i % PIE_COLORES.length]} />
-              ))}
-            </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold tabular-nums">{total}</span>
-          <span className="text-xs text-slate-400">usuarios</span>
-        </div>
-      </div>
-
-      <ul className="mt-4 space-y-2">
-        {data.map((d, i) => (
-          <li key={d.nombre} className="flex items-center justify-between text-sm">
-            <Leyenda color={PIE_COLORES[i % PIE_COLORES.length]} texto={d.nombre} />
-            <span className="font-medium tabular-nums">{d.total}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// Distribución de un valor numérico → barras (la más alta resaltada)
+// Distribución numérica → barras (la más alta resaltada)
 function BarrasVidas({ data }) {
   const max = Math.max(...data.map((d) => d.total), 0);
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={data} margin={{ left: -28, right: 4 }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ left: -24, right: 4, top: 8 }}>
+        <CartesianGrid vertical={false} stroke="#e8ecf3" strokeDasharray="4 4" />
         <XAxis dataKey="nombre" tick={tick} axisLine={false} tickLine={false} />
         <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip
@@ -423,7 +455,7 @@ function BarrasVidas({ data }) {
           formatter={(v) => [v, 'Usuarios']}
           labelFormatter={(l) => `${l} vidas`}
         />
-        <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={40}>
           {data.map((d, i) => (
             <Cell key={i} fill={d.total === max ? INDIGO : INDIGO_SUAVE} />
           ))}
@@ -433,27 +465,87 @@ function BarrasVidas({ data }) {
   );
 }
 
+// Porcentaje de un total → medidor semicircular
+function Gauge({ activos, total }) {
+  const pct = total ? Math.round((activos / total) * 100) : 0;
+  const arco = 'M 20 100 A 80 80 0 0 1 180 100';
+
+  return (
+    <div className="flex flex-1 flex-col justify-between gap-4">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="relative w-full max-w-[300px]">
+          <svg viewBox="0 0 200 110" className="w-full" role="img" aria-label={`${pct}% de cuentas activas`}>
+            <path d={arco} fill="none" stroke="#e0e7ff" strokeWidth="12" strokeLinecap="round" />
+            <path
+              d={arco}
+              fill="none"
+              stroke={INDIGO}
+              strokeWidth="12"
+              strokeLinecap="round"
+              pathLength="100"
+              strokeDasharray={`${pct} 100`}
+            />
+          </svg>
+          <div className="absolute inset-x-0 bottom-0 text-center">
+            <p className="text-3xl font-semibold tabular-nums">{pct}%</p>
+            <p className="text-xs text-slate-400">cuentas activas</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 divide-x divide-slate-100">
+        <div className="pr-3">
+          <p className="text-xl font-semibold tabular-nums">{activos}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+            <span className="h-2 w-2 rounded-full bg-indigo-600" /> Activas
+          </p>
+        </div>
+        <div className="pl-3">
+          <p className="text-xl font-semibold tabular-nums">{total - activos}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+            <span className="h-2 w-2 rounded-full bg-indigo-200" /> Otros estados
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Cifras clave por categoría, separadas por líneas finas
-function Resumen({ data }) {
+function Resumen({ data, colores = false }) {
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] divide-x divide-slate-100">
-      {data.map((d) => (
+      {data.map((d, i) => (
         <div key={d.nombre} className="px-3 first:pl-0">
-          <p className="text-2xl font-semibold tabular-nums">{d.total}</p>
-          <p className="mt-1 text-xs text-slate-400">{d.nombre}</p>
+          <p className="text-xl font-semibold tabular-nums">{d.total}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+            {colores && (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: PIE_COLORES[i % PIE_COLORES.length] }}
+              />
+            )}
+            <span className="truncate">{d.nombre}</span>
+          </p>
         </div>
       ))}
     </div>
   );
 }
 
-// Muchas categorías → gráfico de puntos
-function DotPlot({ data }) {
+// Muchas categorías → gráfico de puntos (en columnas si hay espacio)
+function DotPlot({ data, columnas = false }) {
   const max = Math.max(...data.map((d) => d.total), 1);
   if (!data.length) return <p className="text-sm text-slate-400">Sin datos todavía.</p>;
 
   return (
-    <ul className="space-y-3">
+    <ul
+      className={
+        columnas
+          ? 'grid grid-cols-[repeat(auto-fit,minmax(340px,1fr))] gap-x-12 gap-y-3'
+          : 'flex flex-1 flex-col justify-around gap-3'
+      }
+    >
       {data.map((d) => {
         const pct = (d.total / max) * 100;
         return (
