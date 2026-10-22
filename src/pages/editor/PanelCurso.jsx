@@ -66,6 +66,8 @@ export default function PanelCurso() {
   // Arrastre: id del nodo que se arrastra y zona sobre la que está
   const [arrastrando, setArrastrando] = useState(null);
   const [destino, setDestino] = useState(null);
+  // Nodo sobre el que está el cursor y si caería antes o después de él
+  const [sobreNodo, setSobreNodo] = useState(null);
 
   const cargar = async () => {
     try {
@@ -102,7 +104,10 @@ export default function PanelCurso() {
 
   const unidades = unidadesOrdenadas(curso);
   const idsUnidades = new Set(unidades.map((u) => u.id));
-  const nodosDe = (unidadId) => nodos.filter((n) => n.unidadId === unidadId);
+  const nodosDe = (unidadId) =>
+    nodos
+      .filter((n) => n.unidadId === unidadId)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
   // Sin unidad: unidadId null/ausente, o apuntando a una unidad que ya no
   // existe. No tienen orden, así que se listan alfabéticamente.
   const huerfanos = nodos
@@ -291,6 +296,69 @@ export default function PanelCurso() {
     }
   };
 
+  // Mueve un nodo a `unidadId` en la posición `orden` (1 = primero).
+  // Actualiza la pantalla al instante y revierte si falla la escritura.
+  const aplicarMovimiento = async (nodo, unidadId, orden) => {
+    const nuevoOrden = new Map();
+
+    const destinoLista = nodosDe(unidadId).filter((n) => n.id !== nodo.id);
+    destinoLista.splice(orden - 1, 0, nodo);
+    destinoLista.forEach((n, i) => nuevoOrden.set(n.id, i + 1));
+
+    // Si cambia de unidad, la de origen cierra el hueco
+    if (nodo.unidadId && nodo.unidadId !== unidadId) {
+      nodosDe(nodo.unidadId)
+        .filter((n) => n.id !== nodo.id)
+        .forEach((n, i) => nuevoOrden.set(n.id, i + 1));
+    }
+
+    const anteriores = nodos;
+    setNodos((prev) =>
+      prev.map((n) =>
+        n.id === nodo.id
+          ? { ...n, unidadId, orden: nuevoOrden.get(n.id) }
+          : nuevoOrden.has(n.id)
+            ? { ...n, orden: nuevoOrden.get(n.id) }
+            : n
+      )
+    );
+    setAbiertas((prev) => new Set(prev).add(unidadId));
+
+    try {
+      setError("");
+      await actualizarNodo(cursoId, nodo.id, { unidadId, orden });
+      setNodos(await getNodos(cursoId));
+      setCurso((c) => ({ ...c, version: (c.version ?? 1) + 1 }));
+    } catch (e) {
+      console.error(e);
+      setNodos(anteriores);
+      setError("No se pudo mover el nodo.");
+    }
+  };
+
+  // Suelta el nodo arrastrado antes/después de `objetivo`
+  const soltarSobreNodo = async (objetivo, despues) => {
+    const id = arrastrando;
+    setArrastrando(null);
+    setDestino(null);
+    setSobreNodo(null);
+
+    const nodo = nodos.find((n) => n.id === id);
+    if (!nodo || nodo.id === objetivo.id) return;
+
+    const unidadId = objetivo.unidadId;
+    const sinElMovido = nodosDe(unidadId).filter((n) => n.id !== id);
+    const j = sinElMovido.findIndex((n) => n.id === objetivo.id);
+    if (j < 0) return;
+    const posicion = j + (despues ? 1 : 0); // índice final (base 0)
+
+    // Misma unidad y misma posición: no hay nada que hacer
+    const actual = nodosDe(unidadId).findIndex((n) => n.id === id);
+    if (actual === posicion) return;
+
+    await aplicarMovimiento(nodo, unidadId, posicion + 1);
+  };
+
   const claseZona = (clave, base) =>
     `${base} ${destino === clave ? "ring-2 ring-indigo-400" : ""}`;
 
@@ -308,7 +376,43 @@ export default function PanelCurso() {
       onDragEnd={() => {
         setArrastrando(null);
         setDestino(null);
+        setSobreNodo(null);
       }}
+      {...(puedeEditar && conOrden
+        ? {
+            onDragOver: (e) => {
+              if (!arrastrando || arrastrando === n.id) return;
+              e.preventDefault();
+              e.stopPropagation(); // la unidad no debe tratarlo como "al final"
+              e.dataTransfer.dropEffect = "move";
+              const r = e.currentTarget.getBoundingClientRect();
+              const despues = e.clientY > r.top + r.height / 2;
+              if (sobreNodo?.id !== n.id || sobreNodo.despues !== despues)
+                setSobreNodo({ id: n.id, despues });
+              if (destino) setDestino(null);
+            },
+            onDragLeave: (e) => {
+              if (!e.currentTarget.contains(e.relatedTarget))
+                setSobreNodo((prev) => (prev?.id === n.id ? null : prev));
+            },
+            onDrop: (e) => {
+              if (!arrastrando || arrastrando === n.id) return;
+              e.preventDefault();
+              e.stopPropagation();
+              const despues = sobreNodo?.id === n.id && sobreNodo.despues;
+              soltarSobreNodo(n, despues);
+            },
+          }
+        : {})}
+      style={
+        sobreNodo?.id === n.id
+          ? {
+              boxShadow: sobreNodo.despues
+                ? "0 3px 0 0 #6366f1"
+                : "0 -3px 0 0 #6366f1",
+            }
+          : undefined
+      }
       onClick={() => navigate(`${rutaCursos}/${cursoId}/nodos/${n.id}`)}
       className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 transition hover:shadow-md ${
         arrastrando === n.id ? "opacity-40" : ""
@@ -579,8 +683,8 @@ export default function PanelCurso() {
 
           {puedeEditar && unidades.length > 0 && nodos.length > 0 && (
             <p className="mb-3 text-xs text-gray-500">
-              Tip: arrastrá un nodo (⋮⋮) hasta una unidad, o hasta "Nodos sin
-              unidad", para moverlo.
+              Tip: arrastrá un nodo (⋮⋮) sobre otro para cambiar su orden, o
+              hasta una unidad / "Nodos sin unidad" para moverlo.
             </p>
           )}
 
@@ -685,6 +789,15 @@ export default function PanelCurso() {
                     </span>
                   </h2>
 
+                  {puedeEditar && (
+                    <button
+                      type="button"
+                      onClick={() => abrirNodoNuevo(null)}
+                      className={btnPrimario}
+                    >
+                      + Nodo
+                    </button>
+                  )}
                 </div>
 
                 {huerfanos.length === 0 ? (
