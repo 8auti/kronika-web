@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import Footer from "../components/Footer";
 
+import Ola from "../components/Ola";
+import Footer from "../components/Footer";
+import Reveal from "../components/motion/Reveal"
+import SeccionColor from "../components/motion/SeccionColor"
+import useEnVista from "../components/motion/UseEnVista"
 import BotonGooglePlay from "../components/BotonGooglePlay";
 
 const IMG = {
@@ -65,189 +69,6 @@ const FAQ = [
     respuesta: "Pronto podrás descargar lecciones para estudiar sin internet.",
   },
 ];
-
-/* ------------------------------------------------------------------ */
-/* Motion                                                              */
-/* Todo el CSS de animación vive aquí para no tocar tu tailwind.config.*/
-/* Respeta prefers-reduced-motion.                                     */
-/* ------------------------------------------------------------------ */
-
-const ESTILOS_MOTION = `
-.reveal{
-  opacity:0;
-  transform:translate3d(var(--x,0),var(--y,1.5rem),0) scale(var(--s,1));
-  transition:opacity .7s ease-out, transform .8s cubic-bezier(.2,.7,.2,1);
-  transition-delay:var(--d,0ms);
-}
-.reveal.visto{opacity:1;transform:none}
-
-@keyframes flota{
-  0%,100%{transform:translateY(0) rotate(-1deg)}
-  50%{transform:translateY(-14px) rotate(1deg)}
-}
-.flota{animation:flota 6s ease-in-out infinite}
-.flota-lento{animation:flota 9s ease-in-out -3s infinite}
-
-@keyframes ondea{to{transform:translateX(-9.09%)}}
-.ondea{animation:ondea 9s ease-in-out infinite alternate}
-
-@keyframes nudge{50%{transform:translateX(5px)}}
-.nudge{animation:nudge 1.8s ease-in-out infinite}
-
-@keyframes latido{50%{transform:scale(1.1)}}
-.latido{animation:latido 2.2s ease-in-out infinite}
-
-@keyframes anillo{
-  0%{transform:scale(1);opacity:.7}
-  100%{transform:scale(1.7);opacity:0}
-}
-.anillo{animation:anillo 2.8s ease-out infinite}
-
-@keyframes dibuja{to{stroke-dashoffset:0}}
-.subrayado path{
-  stroke-dasharray:1;
-  stroke-dashoffset:1;
-  animation:dibuja .9s .9s cubic-bezier(.6,0,.2,1) forwards;
-}
-
-@media (prefers-reduced-motion: reduce){
-  .reveal{opacity:1;transform:none;transition:none}
-  .flota,.flota-lento,.ondea,.nudge,.latido,.anillo{animation:none}
-  .subrayado path{animation:none;stroke-dashoffset:0}
-}
-`;
-
-/** Marca `visto = true` la primera vez que el elemento entra en pantalla. */
-function useEnVista(umbral = 0.2) {
-  const ref = useRef(null);
-  const [visto, setVisto] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!("IntersectionObserver" in window)) {
-      setVisto(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisto(true);
-          io.disconnect();
-        }
-      },
-      { threshold: umbral, rootMargin: "0px 0px -6% 0px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [umbral]);
-
-  return [ref, visto];
-}
-
-const DIRECCIONES = {
-  up: { "--x": "0", "--y": "1.5rem" },
-  left: { "--x": "-2.5rem", "--y": "0" },
-  right: { "--x": "2.5rem", "--y": "0" },
-  zoom: { "--x": "0", "--y": "0.75rem", "--s": "0.9" },
-};
-
-/** Entrada al hacer scroll (o al cargar, si ya está a la vista). */
-function Reveal({ as: Tag = "div", dir = "up", delay = 0, className = "", children }) {
-  const [ref, visto] = useEnVista(0.15);
-  return (
-    <Tag
-      ref={ref}
-      className={`reveal ${visto ? "visto" : ""} ${className}`}
-      style={{ ...DIRECCIONES[dir], "--d": `${delay}ms` }}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-/** Sección de ancho completo cuyo fondo cambia de blanco a un tono al entrar. */
-const FONDOS = {
-  azul: "bg-azul-claro",
-  violeta: "bg-violeta-claro",
-};
-
-function SeccionColor({ tono, children }) {
-  const [ref, visto] = useEnVista(0.25);
-  return (
-    <section
-      ref={ref}
-      className={`transition-colors duration-1000 ease-out motion-reduce:transition-none ${
-        visto ? FONDOS[tono] : "bg-white"
-      }`}
-    >
-      {children}
-    </section>
-  );
-}
-
-/** Barra fina de progreso de lectura, pegada al borde superior. */
-function BarraProgreso() {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    let raf = 0;
-    const actualizar = () => {
-      raf = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
-      if (ref.current) ref.current.style.transform = `scaleX(${p})`;
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(actualizar);
-    };
-    actualizar();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      aria-hidden="true"
-      className="fixed inset-x-0 top-0 z-[60] h-1 origin-left bg-naranja"
-      style={{ transform: "scaleX(0)" }}
-    />
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Piezas reutilizables                                                */
-/* ------------------------------------------------------------------ */
-
-/**
- * Ola que se mece despacio. `fondo` es el color que queda "detrás" de la
- * curva (el de la sección vecina), para que el borde siempre cuadre.
- */
-function Ola({ className = "", invertida = false, fondo = "bg-white" }) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`overflow-hidden leading-none ${fondo} ${invertida ? "rotate-180" : ""}`}
-    >
-      <svg
-        viewBox="0 0 1440 120"
-        preserveAspectRatio="none"
-        className={`ondea block h-12 w-[110%] max-w-none md:h-24 ${className}`}
-      >
-        <path
-          d="M0,70 C200,10 420,10 700,45 C980,80 1200,95 1440,35 L1440,121 L0,121 Z"
-          fill="currentColor"
-        />
-      </svg>
-    </div>
-  );
-}
 
 function Titulo({ children, className = "" }) {
   return (
@@ -320,7 +141,7 @@ function Hero() {
 
 function Pasos() {
   return (
-    <SeccionColor tono="azul">
+    <SeccionColor tono="bg-azul-claro">
       <div className="mx-auto max-w-6xl px-6 py-10">
         <Titulo className="text-center text-gray-900">
           En tres pasos ya estas aprendiendo
@@ -465,7 +286,7 @@ function Racha() {
 
 function Temas() {
   return (
-    <SeccionColor tono="violeta">
+    <SeccionColor tono="bg-violeta-claro">
       <div className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-16 md:grid-cols-2">
         <Reveal dir="left">
           <img
@@ -654,8 +475,6 @@ function CtaFinal() {
 export default function Landing() {
   return (
     <>
-      <style>{ESTILOS_MOTION}</style>
-      <BarraProgreso />
       <main className="overflow-x-hidden bg-white text-gray-900">
         <Hero />
         <Pasos />

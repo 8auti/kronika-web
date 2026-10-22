@@ -4,12 +4,19 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
 import { menuPorRol } from "../config/menuPorRol";
+import { menuGlobal } from "../config/menuGlobal";
 
 // El menú completo vive en el sidebar; el navbar solo da acceso al dashboard
 const opcionesPorRol = Object.fromEntries(
   Object.entries(menuPorRol).map(([rol, items]) => [
     rol,
-    [{ nombre: "Dashboard", ruta: items[0].to, prefijos: items.map((i) => i.to) }],
+    [
+      {
+        nombre: "Dashboard",
+        ruta: items[0].to,
+        prefijos: items.map((i) => i.to),
+      },
+    ],
   ]),
 );
 
@@ -20,7 +27,7 @@ const opcionesPorRol = Object.fromEntries(
 const COLOR_TAB = "#f3f4f6"; // gray-100
 
 function Navbar({ rol }) {
-  const opciones = opcionesPorRol[rol] || [];
+  const opciones = [...menuGlobal, ...(opcionesPorRol[rol] || [])];
   const { pathname } = useLocation();
 
   const itemsRef = useRef({});
@@ -28,7 +35,9 @@ function Navbar({ rol }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   // Ruta activa (si hay una que coincida con la URL actual)
-  const rutaActiva = opciones.find((o) => pathname.startsWith(o.ruta))?.ruta;
+  const rutaActiva = opciones.find(
+    (o) => pathname === o.ruta || pathname.startsWith(`${o.ruta}/`),
+  )?.ruta;
 
   const moverA = (ruta) => {
     const el = itemsRef.current[ruta];

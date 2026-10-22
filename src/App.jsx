@@ -9,6 +9,7 @@ import DashboardShell from "./components/DashboardShell.jsx";
 import { ROLES_CON_DASHBOARD } from "./config/menuPorRol.js";
 
 import Landing from "./pages/Landing";
+import Educativo from "./pages/Educativo.jsx";
 import SinAcceso from "./pages/SinAcceso";
 
 import PanelUsuarios from "./pages/admin/PanelUsuarios";
@@ -38,6 +39,7 @@ export default function App() {
       <Route element={<MainLayout />}>
         {/* Público */}
         <Route path="/landing" element={<Landing />} />
+        <Route path="/educativo" element={<Educativo />} />
         <Route path="/sin-acceso" element={<SinAcceso />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
