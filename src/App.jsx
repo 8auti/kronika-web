@@ -19,6 +19,7 @@ import PanelCurso from "./pages/editor/PanelCurso";
 import PanelNodo from "./pages/editor/PanelNodo";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
+import Metricas from "./pages/admin/PanelMetricas.jsx";
 
 // Layout con navbar: todas las rutas anidadas lo muestran
 function MainLayout() {
@@ -46,15 +47,20 @@ export default function App() {
 
         {/* Dashboard: navbar arriba + sidebar al costado.
             Entra cualquier rol con dashboard; cada grupo restringe a su rol. */}
-        <Route element={<RutaProtegida rolesPermitidos={ROLES_CON_DASHBOARD} />}>
+        <Route
+          element={<RutaProtegida rolesPermitidos={ROLES_CON_DASHBOARD} />}
+        >
           <Route element={<DashboardShell />}>
             {/* Admin */}
             <Route element={<RutaProtegida rolesPermitidos={["admin"]} />}>
               <Route path="/usuarios" element={<PanelUsuarios />} />
+              <Route path="/metricas" element={<Metricas />} />
             </Route>
 
             {/* Institución (el admin no accede) */}
-            <Route element={<RutaProtegida rolesPermitidos={["institucion"]} />}>
+            <Route
+              element={<RutaProtegida rolesPermitidos={["institucion"]} />}
+            >
               <Route path="/organizacion" element={<PanelOrganizacion />} />
             </Route>
 
@@ -71,7 +77,10 @@ export default function App() {
             {/* Profesor: aulas y sus cursos */}
             <Route element={<RutaProtegida rolesPermitidos={["profesor"]} />}>
               <Route path="/aulas" element={<PanelAulas />} />
-              <Route path="/aulas/:aulaId/cursos" element={<PanelCursosAula />} />
+              <Route
+                path="/aulas/:aulaId/cursos"
+                element={<PanelCursosAula />}
+              />
               <Route
                 path="/aulas/:aulaId/cursos/:cursoId"
                 element={<PanelCurso />}
