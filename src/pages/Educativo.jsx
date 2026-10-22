@@ -140,34 +140,51 @@ function Titulo({ children, className = "" }) {
 
 function Hero() {
   return (
-      <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2 md:py-40">
-          <div>
-            <Reveal delay={0}>
-              <h1 className="font-display text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
-                Kronika para instituciones:{" "}
-                <span className="relative inline-block text-azul">
-                  historia que tus alumnos quieren repasar.
-                </span>
-              </h1>
-            </Reveal>
-            <Reveal delay={150}>
-              <p className="mt-6 max-w-sm text-sm leading-relaxed text-gray-600">
-                Cursos y lecciones cortas con gamificación, y un panel web para que
-                los profesores asignen contenido, creen el suyo y sigan el progreso
-                de cada alumno.
-              </p>
-            </Reveal>
+    <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2 md:py-40">
+      <div>
+        <Reveal delay={0}>
+          <h1 className="font-display text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+            Kronika para instituciones:{" "}
+            <span className="relative inline-block text-azul">
+              historia que tus alumnos quieren repasar.
+            </span>
+          </h1>
+        </Reveal>
+        <Reveal delay={150}>
+          <p className="mt-6 max-w-sm text-sm leading-relaxed text-gray-600">
+            Cursos y lecciones cortas con gamificación, y un panel web para que
+            los profesores asignen contenido, creen el suyo y sigan el progreso
+            de cada alumno.
+          </p>
+        </Reveal>
+
+        <Reveal delay={300}>
+          <div className="my-6 grid grid-cols-2 gap-4">
+            <a
+              href="#contacto"
+              className="w-full rounded-md border border-gray-900 bg-gray-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+            >
+              Solicitar demo
+            </a>
+            <a
+              href="#planes"
+              className="w-full rounded-md border border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+            >
+              Ver planes y precios
+            </a>
           </div>
+        </Reveal>
+      </div>
 
-          <Reveal dir="zoom" delay={200} className="relative">
-            <img
-              src={IMG.hero}
-              alt="Búho de Kronika mirando a un panel administrativo flotante"
-              className="flota relative mx-auto w-full max-w-md"
-            />
-          </Reveal>
+      <Reveal dir="zoom" delay={200} className="relative">
+        <img
+          src={IMG.hero}
+          alt="Búho de Kronika mirando a un panel administrativo flotante"
+          className="flota relative mx-auto w-full max-w-md"
+        />
+      </Reveal>
 
-      </section>
+    </section>
   );
 }
 
@@ -261,7 +278,7 @@ function Planes() {
   const [anual, setAnual] = useState(false);
 
   return (
-      <section className="mx-auto max-w-6xl px-6 py-40">
+      <section id="planes" className="mx-auto max-w-6xl px-6 py-40">
         <Titulo className="text-gray-900">Planes y precios</Titulo>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-600">
           Los alumnos acceden sin costo propio: la institución elige un plan
@@ -420,7 +437,7 @@ function Faq() {
 
 function CtaFinal() {
   return (
-    <section className="bg-azul">
+    <section id="contacto" className="bg-azul">
       <Ola className="text-azul-claro" invertida fondo="bg-azul" />
       <div className="mx-auto flex max-w-6xl flex-col items-center px-6 pb-20 pt-6 text-center">
         <Reveal dir="zoom">
@@ -449,6 +466,15 @@ function CtaFinal() {
             Cuéntanos cuántos profesores y alumnos serían y te respondemos
             pronto.
           </p>
+        </Reveal>
+
+        <Reveal delay={300}>
+          <a
+            href="mailto:correo@kronika.app?subject=Kronika%20para%20instituciones"
+            className="mt-6 inline-block rounded-md border border-white bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100"
+          >
+            Contactar a ventas
+          </a>
         </Reveal>
       </div>
     </section>
