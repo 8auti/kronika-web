@@ -1,17 +1,17 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/useAuth.jsx";
-
+ 
 import Login from "./auth/Login";
 import Registro from "./auth/Registro.jsx";
 import RutaProtegida from "./auth/RutaProtegida";
 import Navbar from "./components/Navbar";
 import DashboardShell from "./components/DashboardShell.jsx";
 import { ROLES_CON_DASHBOARD } from "./config/menuPorRol.js";
-
+ 
 import Landing from "./pages/Landing";
 import Educativo from "./pages/Educativo.jsx";
 import SinAcceso from "./pages/SinAcceso";
-
+ 
 import PanelUsuarios from "./pages/admin/PanelUsuarios";
 import PanelOrganizacion from "./pages/institucion/PanelOrganizacion";
 import PanelCursos from "./pages/editor/PanelCursos";
@@ -20,11 +20,13 @@ import PanelNodo from "./pages/editor/PanelNodo";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
 import Metricas from "./pages/admin/PanelMetricas.jsx";
-
+import PanelComunicacion from "./pages/profesor/PanelComunicacion";
+import ForoAula from "./pages/profesor/ForoAula";
+ 
 // Layout con navbar: todas las rutas anidadas lo muestran
 function MainLayout() {
   const { usuario, rol, cargando } = useAuth();
-
+ 
   return (
     <>
       {!cargando && <Navbar rol={usuario ? rol : null} />}
@@ -32,7 +34,7 @@ function MainLayout() {
     </>
   );
 }
-
+ 
 export default function App() {
   return (
     <Routes>
@@ -44,7 +46,7 @@ export default function App() {
         <Route path="/sin-acceso" element={<SinAcceso />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
-
+ 
         {/* Dashboard: navbar arriba + sidebar al costado.
             Entra cualquier rol con dashboard; cada grupo restringe a su rol. */}
         <Route
@@ -56,14 +58,14 @@ export default function App() {
               <Route path="/usuarios" element={<PanelUsuarios />} />
               <Route path="/metricas" element={<Metricas />} />
             </Route>
-
+ 
             {/* Institución (el admin no accede) */}
             <Route
               element={<RutaProtegida rolesPermitidos={["institucion"]} />}
             >
               <Route path="/organizacion" element={<PanelOrganizacion />} />
             </Route>
-
+ 
             {/* Editor: cursos de Kronika */}
             <Route element={<RutaProtegida rolesPermitidos={["editor"]} />}>
               <Route path="/cursos" element={<PanelCursos />} />
@@ -73,7 +75,7 @@ export default function App() {
                 element={<PanelNodo />}
               />
             </Route>
-
+ 
             {/* Profesor: aulas y sus cursos */}
             <Route element={<RutaProtegida rolesPermitidos={["profesor"]} />}>
               <Route path="/aulas" element={<PanelAulas />} />
@@ -89,11 +91,15 @@ export default function App() {
                 path="/aulas/:aulaId/cursos/:cursoId/nodos/:nodoId"
                 element={<PanelNodo />}
               />
+ 
+              {/* Foro de consultas: 1) elegir aula  2) entrar al foro */}
+              <Route path="/comunicacion" element={<PanelComunicacion />} />
+              <Route path="/comunicacion/:aulaId" element={<ForoAula />} />
             </Route>
           </Route>
         </Route>
       </Route>
-
+ 
       {/* Redirecciones */}
       <Route path="/" element={<Navigate to="/landing" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
