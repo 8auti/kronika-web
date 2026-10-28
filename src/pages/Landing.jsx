@@ -186,7 +186,7 @@ function Cursos() {
       {/* Arriba: color de Pasos. Abajo: blanco de Racha. */}
       <Ola className="text-azul" fondo="bg-azul-claro" />
       <div className="bg-azul pb-4 pt-6">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-6xl px-6 pb-20">
           <div className="flex items-baseline justify-between gap-4">
             <Titulo className="text-white">Que puedes Aprender</Titulo>
             <span className="text-sm font-semibold text-white">
@@ -225,7 +225,6 @@ function Cursos() {
           </ul>
         </div>
       </div>
-      <Ola className="text-azul" invertida fondo="bg-white" />
     </section>
   );
 }
@@ -297,7 +296,7 @@ function Temas() {
         </Reveal>
         <div>
           <Reveal dir="right">
-            <Titulo className="text-naranja">Gran variedad de temas</Titulo>
+            <Titulo className="text-white">Gran variedad de temas</Titulo>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
               Desde dioses y héroes hasta imperios y filósofos: elige la época que
               más te guste y avanza a tu ritmo.
