@@ -6,7 +6,6 @@ import Footer from "../components/Footer";
 import Pregunta from "../components/Pregunta";
 import Reveal from "../components/motion/Reveal"
 import SeccionColor from "../components/motion/SeccionColor"
-import useEnVista from "../components/motion/UseEnVista"
 import BotonGooglePlay from "../components/BotonGooglePlay";
 
 const IMG = {
@@ -29,7 +28,7 @@ const PASOS = [
       "De la Roma Antigua a los mitos griegos: empieza por lo que más te llame la atención.",
   },
   {
-    titulo: "Completa lecciones cortas",
+    titulo: "Lecciones Cortas",
     texto:
       "Cada lección toma unos 5 minutos, así que cabe en cualquier momento del día.",
   },
@@ -48,8 +47,6 @@ const CURSOS = [
 ];
 
 const TEMAS = ["Mitología", "Filosofía", "Roma", "Egipto"];
-
-const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
 const FAQ = [
   {
@@ -80,7 +77,7 @@ function Titulo({ children, className = "" }) {
 
 function Hero() {
   return (
-    <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2 md:py-20">
+    <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2 md:px-24 md:py-20">
       <div>
         <Reveal delay={0}>
           <h1 className="font-display text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
@@ -141,50 +138,50 @@ function Hero() {
 
 function Pasos() {
   return (
-    <SeccionColor tono="bg-azul-claro">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <Titulo className="text-center text-gray-900">
-          En tres pasos ya estas aprendiendo
-        </Titulo>
+    <div className="mx-auto max-w-6xl px-6 py-20">
+      <Titulo className="text-center text-gray-900 mb-5">
+        En tres pasos ya estas aprendiendo
+      </Titulo>
 
-        <ol className="mt-10 flex flex-col items-stretch gap-4 md:flex-row md:items-center">
-          {PASOS.map((paso, i) => (
-            <li key={paso.titulo} className="contents">
-              {/* Los pasos entran en orden: el retraso comunica la secuencia */}
-              <Reveal delay={i * 220} className="flex-1">
-                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-azul-claro font-display text-lg font-bold text-azul">
+      <ol className="mt-10 flex flex-col items-stretch gap-4 md:flex-row md:items-center">
+        {PASOS.map((paso, i) => (
+          <li key={paso.titulo} className="contents">
+            {/* Los pasos entran en orden: el retraso comunica la secuencia */}
+            <Reveal delay={i * 220} className="flex-1">
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                {/* Número y título en la misma fila */}
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-azul-claro font-display text-lg font-bold text-azul">
                     {i + 1}
                   </span>
-                  <h3 className="mt-4 font-display text-lg font-bold text-gray-900">
+                  <h3 className="font-display text-lg font-bold text-gray-900">
                     {paso.titulo}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                    {paso.texto}
-                  </p>
                 </div>
-              </Reveal>
-              {i < PASOS.length - 1 && (
-                <span
-                  aria-hidden="true"
-                  className="self-center text-gray-400 max-md:rotate-90"
-                >
-                  <span className="nudge inline-block">→</span>
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
-      </div>
-    </SeccionColor>
+                <p className="mt-3 text-sm leading-relaxed text-gray-500">
+                  {paso.texto}
+                </p>
+              </div>
+            </Reveal>
+            {i < PASOS.length - 1 && (
+              <span
+                aria-hidden="true"
+                className="self-center text-gray-400 max-md:rotate-90"
+              >
+                <span className="nudge inline-block">→</span>
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
 function Cursos() {
   return (
     <section>
-      {/* Arriba: color de Pasos. Abajo: blanco de Racha. */}
-      <Ola className="text-azul" fondo="bg-azul-claro" />
+      <Ola className="text-azul" />
       <div className="bg-azul pb-4 pt-6">
         <div className="mx-auto max-w-6xl px-6 pb-20">
           <div className="flex items-baseline justify-between gap-4">
@@ -229,49 +226,20 @@ function Cursos() {
   );
 }
 
-/** Siete días que se encienden uno tras otro cuando la sección entra. */
-function PuntosRacha() {
-  const [ref, visto] = useEnVista(0.6);
-  return (
-    <ul
-      ref={ref}
-      aria-label="Ejemplo de una semana de racha"
-      className="mt-8 flex gap-2"
-    >
-      {DIAS.map((dia, i) => (
-        <li
-          key={i}
-          style={{ transitionDelay: visto ? `${i * 130}ms` : "0ms" }}
-          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all duration-500 motion-reduce:transition-none ${
-            visto
-              ? "scale-100 bg-naranja text-white"
-              : "scale-90 bg-gray-200 text-gray-500"
-          }`}
-        >
-          {dia}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function Racha() {
   return (
     <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-16 md:grid-cols-2">
-      <div>
-        <Reveal dir="left">
-          <Titulo className="text-naranja">
-            Una racha que no
-            <br />
-            quieres romper
-          </Titulo>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600">
-            Los imperios no se construyeron en un día, pero sí día tras día.
-            Mantén tu racha y conquista la historia.
-          </p>
-        </Reveal>
-        <PuntosRacha />
-      </div>
+      <Reveal dir="left">
+        <Titulo className="text-naranja">
+          Una racha que no
+          <br />
+          quieres romper
+        </Titulo>
+        <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600">
+          Los imperios no se construyeron en un día, pero sí día tras día.
+          Mantén tu racha y conquista la historia.
+        </p>
+      </Reveal>
       <Reveal dir="right" delay={150}>
         <img
           src={IMG.racha}
@@ -285,35 +253,33 @@ function Racha() {
 
 function Temas() {
   return (
-    <SeccionColor tono="bg-violeta-claro">
-      <div className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-16 md:grid-cols-2">
-        <Reveal dir="left">
-          <img
-            src={IMG.temas}
-            alt="Isla flotante con Templo Griego, Piramide, Barco y Locomotora"
-            className="flota mx-auto w-full max-w-sm rounded-xl md:order-none"
-          />
+    <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-16 md:grid-cols-2">
+      <Reveal dir="left">
+        <img
+          src={IMG.temas}
+          alt="Isla flotante con Templo Griego, Piramide, Barco y Locomotora"
+          className="flota mx-auto w-full max-w-sm rounded-xl md:order-none"
+        />
+      </Reveal>
+      <div>
+        <Reveal dir="right">
+          <Titulo className="text-naranja">Gran variedad de temas</Titulo>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-600">
+            Desde dioses y héroes hasta imperios y filósofos: elige la época que
+            más te guste y avanza a tu ritmo.
+          </p>
         </Reveal>
-        <div>
-          <Reveal dir="right">
-            <Titulo className="text-white">Gran variedad de temas</Titulo>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Desde dioses y héroes hasta imperios y filósofos: elige la época que
-              más te guste y avanza a tu ritmo.
-            </p>
-          </Reveal>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {TEMAS.map((tema, i) => (
-              <Reveal as="li" dir="zoom" delay={300 + i * 100} key={tema}>
-                <span className="inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold text-violeta">
-                  {tema}
-                </span>
-              </Reveal>
-            ))}
-          </ul>
-        </div>
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {TEMAS.map((tema, i) => (
+            <Reveal as="li" dir="zoom" delay={300 + i * 100} key={tema}>
+              <span className="inline-block rounded-full bg-azul-claro px-3 py-1 text-xs font-semibold text-azul">
+                {tema}
+              </span>
+            </Reveal>
+          ))}
+        </ul>
       </div>
-    </SeccionColor>
+    </section>
   );
 }
 
