@@ -3,21 +3,22 @@ import { Link } from "react-router-dom";
 
 import Ola from "../components/Ola";
 import Footer from "../components/Footer";
+import Pregunta from "../components/Pregunta";
 import Reveal from "../components/motion/Reveal"
 import SeccionColor from "../components/motion/SeccionColor"
 import useEnVista from "../components/motion/UseEnVista"
 import BotonGooglePlay from "../components/BotonGooglePlay";
 
 const IMG = {
-  hero: "/img/grifo-hero.png",
-  racha: "/img/grifo-racha.png",
-  temas: "/img/isla-temas.png",
-  cta: "/img/grifo-cta.png",
+  hero: "/img/landing/grifo-hero.png",
+  racha: "/img/landing/grifo-racha.png",
+  temas: "/img/landing/isla-temas.png",
+  cta: "/img/landing/grifo-cta.png",
   cursos: {
-    griega: "/img/curso-griego.png",
-    roma: "/img/curso-roma.png",
-    egipto: "/img/curso-egipto.png",
-    filosofia: "/img/curso-filosofia.png",
+    griega: "/img/landing/cursos/curso-griego.png",
+    roma: "/img/landing/cursos/curso-roma.png",
+    egipto: "/img/landing/cursos/curso-egipto.png",
+    filosofia: "/img/landing/cursos/curso-filosofia.png",
   },
 };
 
@@ -50,7 +51,6 @@ const TEMAS = ["Mitología", "Filosofía", "Roma", "Egipto"];
 
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
-// TODO: reemplaza las respuestas por las reales
 const FAQ = [
   {
     pregunta: "¿Es gratis?",
@@ -322,7 +322,6 @@ function Instituciones() {
     <section className="mx-auto max-w-6xl px-6 py-16">
       <Reveal dir="zoom">
         <div className="relative flex flex-col items-start justify-between gap-6 overflow-hidden rounded-3xl bg-azul p-8 text-white md:flex-row md:items-center md:px-12 md:py-10">
-          {/* Círculos decorativos que se mecen */}
           <span
             aria-hidden="true"
             className="flota-lento absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10"
@@ -341,7 +340,7 @@ function Instituciones() {
             </p>
           </div>
           <Link
-            to="/instituciones"
+            to="/educativo"
             className="group relative shrink-0 rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Mas Informacion
@@ -355,45 +354,6 @@ function Instituciones() {
         </div>
       </Reveal>
     </section>
-  );
-}
-
-function Pregunta({ pregunta, respuesta, abierta, onToggle, id }) {
-  return (
-    <div className="rounded-lg bg-white shadow-sm">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={abierta}
-        aria-controls={id}
-        className="flex w-full items-center justify-between gap-4 rounded-lg px-5 py-4 text-left text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-azul"
-      >
-        {pregunta}
-        <span
-          aria-hidden="true"
-          className={`text-lg leading-none text-gray-600 transition-transform duration-300 motion-reduce:transition-none ${
-            abierta ? "rotate-45" : ""
-          }`}
-        >
-          +
-        </span>
-      </button>
-      {/* grid 0fr → 1fr: la respuesta se despliega sin medir alturas */}
-      <div
-        id={id}
-        role="region"
-        aria-hidden={!abierta}
-        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
-          abierta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <p className="px-5 pb-4 text-sm leading-relaxed text-gray-600">
-            {respuesta}
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -468,9 +428,6 @@ function CtaFinal() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Página                                                              */
-/* ------------------------------------------------------------------ */
 export default function Landing() {
   return (
     <>
