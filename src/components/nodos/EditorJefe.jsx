@@ -1,3 +1,4 @@
+import { useAuth } from "../../auth/useAuth";
 import SelectorImagen from "../SelectorImagen";
 import { CARPETAS } from "../../services/imagenesService";
 import EditorRetos from "./EditorRetos";
@@ -5,7 +6,10 @@ import { inputClase } from "./estilos";
 
 // Nodo jefe: datos del jefe + vidas del jugador + retos de cualquier tipo
 export default function EditorJefe({ contenido, onChange, onSubiendo }) {
+  const { rol } = useAuth();
   const { jefe, vidasJugador, retos } = contenido;
+  // Solo el editor sube imágenes de jefes; el profesor solo la ve
+  const puedeSubirImagen = rol === "editor";
 
   const cambiarJefe = (cambios) =>
     onChange({ ...contenido, jefe: { ...jefe, ...cambios } });
@@ -55,12 +59,22 @@ export default function EditorJefe({ contenido, onChange, onSubiendo }) {
 
         <div className="text-sm font-medium text-gray-700">
           <span className="mb-1 block">Imagen del jefe</span>
-          <SelectorImagen
-            value={jefe.imagen}
-            carpeta={CARPETAS.JEFE}
-            onChange={(imagen) => cambiarJefe({ imagen })}
-            onSubiendo={onSubiendo}
-          />
+          {puedeSubirImagen ? (
+            <SelectorImagen
+              value={jefe.imagen}
+              carpeta={CARPETAS.JEFE}
+              onChange={(imagen) => cambiarJefe({ imagen })}
+              onSubiendo={onSubiendo}
+            />
+          ) : (
+            jefe.imagen && (
+              <img
+                src={jefe.imagen}
+                alt=""
+                className="max-h-40 rounded-lg border border-gray-200 object-contain"
+              />
+            )
+          )}
         </div>
       </fieldset>
 
