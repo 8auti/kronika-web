@@ -66,6 +66,7 @@ export default function PanelNodo() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [guardado, setGuardado] = useState(false);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
 
   // Formulario: metadata + contenido del tipo
   const [titulo, setTitulo] = useState("");
@@ -145,6 +146,8 @@ export default function PanelNodo() {
     e.preventDefault();
     setError("");
     setGuardado(false);
+
+    if (subiendoImagen) return setError("Esperá a que termine de subir la imagen.");
 
     const tituloLimpio = titulo.trim();
 
@@ -287,11 +290,16 @@ export default function PanelNodo() {
               <EditorLectura
                 bloques={contenido.bloques}
                 onChange={(bloques) => setContenido({ bloques })}
+                onSubiendo={setSubiendoImagen}
               />
             )}
 
             {nodo.tipo === "jefe" && (
-              <EditorJefe contenido={contenido} onChange={setContenido} />
+              <EditorJefe
+                contenido={contenido}
+                onChange={setContenido}
+                onSubiendo={setSubiendoImagen}
+              />
             )}
 
             {["trivia", "emparejar", "ordenar"].includes(nodo.tipo) && (
@@ -308,7 +316,11 @@ export default function PanelNodo() {
             )}
 
             <div className="flex gap-2">
-              <button type="submit" disabled={guardando} className={btnPrimario}>
+              <button
+                type="submit"
+                disabled={guardando || subiendoImagen}
+                className={btnPrimario}
+              >
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
               <button

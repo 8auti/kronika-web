@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { getAula } from "../../services/aulasService";
 import {
-  TIPOS_NODO,
+  tiposNodoPermitidos,
   actualizarNodo,
   crearNodo,
   eliminarNodo,
@@ -46,6 +46,7 @@ export default function PanelCurso() {
   const navigate = useNavigate();
 
   // Dentro de un aula edita el profesor; en /cursos edita el editor
+  const tiposNodo = tiposNodoPermitidos(rol);
   const puedeEditar = aulaId ? rol === "profesor" : rol === "editor";
   const rutaCursos = aulaId ? `/aulas/${aulaId}/cursos` : "/cursos";
 
@@ -201,7 +202,7 @@ export default function PanelCurso() {
     setFormNodo({
       unidadId,
       titulo: "",
-      tipo: TIPOS_NODO[0].valor,
+      tipo: tiposNodo[0].valor,
       // Sin unidad no hay orden
       orden: unidadId ? siguienteOrdenNodo(unidadId) : null,
     });
@@ -221,11 +222,15 @@ export default function PanelCurso() {
     try {
       setError("");
       setGuardando(true);
-      const ref = await crearNodo(cursoId, {
-        ...formNodo,
-        titulo,
-        orden: formNodo.unidadId ? Number(formNodo.orden) : null,
-      });
+      const ref = await crearNodo(
+        cursoId,
+        {
+          ...formNodo,
+          titulo,
+          orden: formNodo.unidadId ? Number(formNodo.orden) : null,
+        },
+        rol
+      );
       // Se crea vacío y se abre el editor para cargar su contenido
       navigate(`${rutaCursos}/${cursoId}/nodos/${ref.id}`);
     } catch (err) {
@@ -625,7 +630,7 @@ export default function PanelCurso() {
                     }
                     className={`${inputClase} mt-1`}
                   >
-                    {TIPOS_NODO.map((t) => (
+                    {tiposNodo.map((t) => (
                       <option key={t.valor} value={t.valor}>
                         {t.etiqueta}
                       </option>

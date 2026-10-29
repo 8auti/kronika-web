@@ -9,6 +9,8 @@ import {
   tituloCurso,
 } from "../../services/cursosService";
 import CursoCard from "../../components/CursoCard";
+import SelectorImagen from "../../components/SelectorImagen";
+import { CARPETAS } from "../../services/imagenesService";
 import { useAuth } from "../../auth/useAuth";
 
 // Clases de Tailwind de este panel
@@ -36,6 +38,7 @@ export default function PanelCursos() {
   const [cursos, setCursos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
   const [error, setError] = useState("");
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -177,16 +180,17 @@ export default function PanelCursos() {
               />
             </label>
 
-            <label className="block text-sm font-medium text-gray-700">
-              URL de la imagen
-              <input
-                type="url"
-                placeholder="https://..."
+            <div className="text-sm font-medium text-gray-700">
+              <span className="mb-1 block">Icono del curso</span>
+              <SelectorImagen
                 value={formulario.imagen_url}
-                onChange={cambiar("imagen_url")}
-                className={`${inputClase} mt-1`}
+                carpeta={CARPETAS.ICONO_CURSO}
+                onChange={(url) =>
+                  setFormulario((f) => ({ ...f, imagen_url: url }))
+                }
+                onSubiendo={setSubiendoImagen}
               />
-            </label>
+            </div>
 
             <p className="text-xs text-gray-500">
               Creador: <span className="capitalize">{rol}</span> (se asigna
@@ -194,7 +198,11 @@ export default function PanelCursos() {
             </p>
 
             <div className="flex gap-2">
-              <button type="submit" disabled={guardando} className={btnPrimario}>
+              <button
+                type="submit"
+                disabled={guardando || subiendoImagen}
+                className={btnPrimario}
+              >
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
               <button
