@@ -1,7 +1,9 @@
+import SelectorImagen from "../SelectorImagen";
+import { CARPETAS } from "../../services/imagenesService";
 import { btnEditar, btnLink, btnPeligro, inputClase } from "./estilos";
 
 // Bloques de una lectura: { tipo: "texto", texto } | { tipo: "imagen", url }
-export default function EditorLectura({ bloques, onChange }) {
+export default function EditorLectura({ bloques, onChange, onSubiendo }) {
   const cambiar = (i, cambios) =>
     onChange(bloques.map((b, idx) => (idx === i ? { ...b, ...cambios } : b)));
 
@@ -60,25 +62,12 @@ export default function EditorLectura({ bloques, onChange }) {
             </div>
 
             {b.tipo === "imagen" ? (
-              <>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={b.url}
-                  onChange={(e) => cambiar(i, { url: e.target.value })}
-                  className={inputClase}
-                />
-                {b.url && (
-                  <img
-                    src={b.url}
-                    alt=""
-                    className="mt-2 max-h-40 rounded-lg object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                )}
-              </>
+              <SelectorImagen
+                value={b.url}
+                carpeta={CARPETAS.LECTURA}
+                onChange={(url) => cambiar(i, { url })}
+                onSubiendo={onSubiendo}
+              />
             ) : (
               <textarea
                 rows={4}

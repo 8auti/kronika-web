@@ -1,8 +1,10 @@
+import SelectorImagen from "../SelectorImagen";
+import { CARPETAS } from "../../services/imagenesService";
 import EditorRetos from "./EditorRetos";
 import { inputClase } from "./estilos";
 
 // Nodo jefe: datos del jefe + vidas del jugador + retos de cualquier tipo
-export default function EditorJefe({ contenido, onChange }) {
+export default function EditorJefe({ contenido, onChange, onSubiendo }) {
   const { jefe, vidasJugador, retos } = contenido;
 
   const cambiarJefe = (cambios) =>
@@ -51,16 +53,15 @@ export default function EditorJefe({ contenido, onChange }) {
           </label>
         </div>
 
-        <label className="block text-sm font-medium text-gray-700">
-          URL de la imagen del jefe
-          <input
-            type="url"
-            placeholder="https://..."
+        <div className="text-sm font-medium text-gray-700">
+          <span className="mb-1 block">Imagen del jefe</span>
+          <SelectorImagen
             value={jefe.imagen}
-            onChange={(e) => cambiarJefe({ imagen: e.target.value })}
-            className={`${inputClase} mt-1`}
+            carpeta={CARPETAS.JEFE}
+            onChange={(imagen) => cambiarJefe({ imagen })}
+            onSubiendo={onSubiendo}
           />
-        </label>
+        </div>
       </fieldset>
 
       <EditorRetos
