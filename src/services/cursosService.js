@@ -47,6 +47,14 @@ export const TIPOS_NODO = [
   { valor: "jefe", etiqueta: "Jefe" },
 ];
 
+// Tipos de nodo que NO puede crear cada rol (el jefe es solo del editor).
+// Los jefes que ya vengan en un curso copiado de Kronika se siguen pudiendo
+// editar; lo que no se puede es crear nuevos.
+const TIPOS_NODO_VEDADOS = { profesor: ["jefe"] };
+
+export const tiposNodoPermitidos = (rol) =>
+  TIPOS_NODO.filter((t) => !TIPOS_NODO_VEDADOS[rol]?.includes(t.valor));
+
 // Tipos de reto (los que pueden ir dentro de `retos`)
 export const TIPOS_RETO = TIPOS_NODO.filter((t) =>
   ["trivia", "emparejar", "ordenar"].includes(t.valor)
@@ -194,7 +202,7 @@ export function validarContenido(tipo, contenido) {
       if (b.tipo === "texto" && vacio(b.texto))
         return `Bloque ${i + 1}: escribí el texto.`;
       if (b.tipo === "imagen" && vacio(b.url))
-        return `Bloque ${i + 1}: falta la URL de la imagen.`;
+        return `Bloque ${i + 1}: falta elegir la imagen.`;
     }
     return null;
   }
@@ -469,7 +477,15 @@ export async function getNodo(cursoId, nodoId) {
 // Crea el nodo con contenido vacío del tipo elegido y sube la versión.
 // Un nodo sin unidad no lleva orden. Si el orden elegido deja huecos en la
 // unidad, se renumera para que quede consecutivo.
-export async function crearNodo(cursoId, { unidadId, orden, tipo, titulo }) {
+export async function crearNodo(
+  cursoId,
+  { unidadId, orden, tipo, titulo },
+  rol
+) {
+  // Defensa extra: aunque la UI no lo ofrezca, el servicio lo rechaza
+  if (!tiposNodoPermitidos(rol).some((t) => t.valor === tipo))
+    throw new Error("Tu rol no puede crear nodos de este tipo.");
+
   const ref = doc(nodosRef(cursoId));
   const batch = writeBatch(db);
 
