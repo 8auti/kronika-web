@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 
 import Footer from "../components/Footer";
 import Pregunta from "../components/Pregunta";
@@ -6,129 +7,15 @@ import Reveal from "../components/motion/Reveal"
 import SeccionColor from "../components/motion/SeccionColor";
 import Ola from "../components/Ola";
 
-import {
-  Check,
-  SquareText,
-  TableOfContents,
-  Clock4,
-} from "lucide-react";
+import {BENEFICIOS} from "../data/educativo/Beneficios";
+import {HERRAMIENTAS} from "../data/educativo/Herramientas";
+import {PLANES} from "../data/educativo/Planes";
+import {FAQ} from "../data/educativo/Faq";
 
 const IMG = {
   hero: "/img/educativo/hero.png",
-  clases: "/img/educativo/clases.png",
-  progreso: "/img/educativo/progreso.png",
-  contenido: "/img/educativo/contenido.png",
   cta: "/img/educativo/cta.png"
 };
-
-const BENEFICIOS = [
-  {
-    titulo: "Seguimiento fácil del progreso",
-    texto:
-      "Mira quién avanzó, quién se quedó atrás y cómo le va a todo el grupo.",
-    icono: TableOfContents
-  },
-  {
-    titulo: "Repaso que sí se hace",
-    texto:
-      "Lecciones de unos 5 minutos que los alumnos completan en clase o en casa.",
-    icono: Clock4
-  },
-  {
-    titulo: "Contenido propio",
-    texto:
-      "Crea lecciones y preguntas personalizadas para tu clase, con las mismas plantillas de Kronika.",
-    icono: SquareText
-  },
-];
-
-
-const HERRAMIENTAS = [
-  {
-    titulo: "Clases y grupos",
-    descripcion:
-      "Crea una clase y suma a tus alumnos con un código o una invitación. Asigna cursos o lecciones específicas.",
-    imagen: IMG.clases,
-    tags: ["Código de clase", "Asignación de lecciones"]
-  },
-  {
-    titulo: "Progreso y reportes",
-    descripcion:
-      "Consulta el avance individual y grupal, y genera reportes de desempeño para compartir con tu institución.",
-    imagen: IMG.progreso,
-    tags: ["Progreso individual", "Reportes"]
-  },
-  {
-    titulo: "Contenido propio desde el panel web",
-    descripcion:
-      "Escribe tus lecciones y preguntas con teclado y pantalla amplia.",
-    imagen: IMG.contenido,
-    tags: ["Rápido de aprender", "Facilidad de uso"]
-  },
-];
-
-const PLANES = [
-  {
-    nombre: "Aula",
-    descripcion: "Para un profesor y su grupo.",
-    precio: 29,
-    cta: "Elegir Aula",
-    items: [
-      "1 profesor",
-      "Hasta 40 alumnos",
-      "Clases con código de invitación",
-      "Asignación de cursos y lecciones",
-      "Seguimiento de progreso",
-    ],
-  },
-  {
-    nombre: "Colegio",
-    descripcion: "Para toda una institución.",
-    precio: 149,
-    destacado: true,
-    cta: "Elegir Colegio",
-    items: [
-      "Profesores ilimitados",
-      "Hasta 500 alumnos",
-      "Todo lo de Aula",
-      "Contenido propio desde el panel web",
-      "Reportes de desempeño",
-      "Soporte prioritario",
-    ],
-  },
-  {
-    nombre: "Red de instituciones",
-    descripcion: "Para varias sedes o colegios.",
-    precio: null,
-    cta: "Hablar con ventas",
-    items: [
-      "Alumnos y sedes a convenir",
-      "Todo lo de Colegio",
-      "Gestor de cuenta dedicado",
-      { texto: "Próximamente: marca propia", pronto: true },
-      { texto: "Próximamente: analíticas avanzadas", pronto: true },
-    ],
-  },
-];
-
-const FAQ = [
-  {
-    pregunta: "¿Los alumnos tienen que pagar algo?",
-    respuesta: "No. En el modelo institucional no hay suscripción premium ni compras para los alumnos.",
-  },
-  {
-    pregunta: "¿Cómo se suman los alumnos a una clase?",
-    respuesta: "Los profesores pueden invitar a los alumnos a través de un código de clase o una invitación.",
-  },
-  {
-    pregunta: "¿Quién revisa el contenido que creamos?",
-    respuesta: "El contenido que crean los profesores es privado y no lo revisa nadie más que la institución o el profesor. Solo el contenido oficial de Kronika es revisado por nuestro equipo.",
-  },
-  {
-    pregunta: "¿Qué dispositivos necesitan los alumnos?",
-    respuesta: "La app de Kronika está disponible para Android en Google Play. El panel del profesor funciona desde el navegador.",
-  },
-];
 
 function Titulo({ children, className = "" }) {
   return (
@@ -259,7 +146,7 @@ function Herramientas() {
               <div className={invertir ? "md:order-1" : "md:order-2"}>
                 <Reveal dir={invertir ? "left" : "right"} delay={150}>
                   <img
-                    src={item.imagen}
+                    src={item.img}
                     alt=""
                     className="flota-lento mx-auto w-full max-w-3xs"
                   />

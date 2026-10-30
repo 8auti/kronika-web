@@ -10,6 +10,10 @@ import SeccionColor from "../components/motion/SeccionColor"
 import BotonGooglePlay from "../components/BotonGooglePlay";
 import Mascot from "../components/landing/Mascot";
 
+import {HERRAMIENTAS} from "../data/educativo/Herramientas";
+import {PASOS} from "../data/landing/Pasos";
+import {FAQ} from "../data/landing/Faq";
+
 const IMG = {
   hero: "/img/landing/grifo-hero.png",
   racha: "/img/landing/grifo-racha.png",
@@ -23,43 +27,6 @@ const IMG = {
   },
 };
 
-// Cada paso: el texto admite <strong> para resaltar frases, como en el diseño.
-const PASOS = [
-  {
-    titulo: "Elegí un curso",
-    texto: (
-      <>
-        <strong className="font-semibold text-gray-900">
-          De la Roma Antigua a los mitos griegos:
-        </strong>{" "}
-        empezá por lo que más te llame la atención.
-      </>
-    ),
-  },
-  {
-    titulo: "Lecciones cortas",
-    texto: (
-      <>
-        Dedicale solo{" "}
-        <strong className="font-semibold text-gray-900">
-          5 minutos al día
-        </strong>{" "}
-        a tu aprendizaje, cuando mejor te quede.
-      </>
-    ),
-  },
-  {
-    titulo: "Mantené tu racha",
-    texto: (
-      <>
-        Aprendé un{" "}
-        <strong className="font-semibold text-gray-900">poco cada día,</strong>{" "}
-        sumá días seguidos y celebrá con tu logro.
-      </>
-    ),
-  },
-];
-
 const CURSOS = [
   { nombre: "Mitología Griega", estado: "Nuevo!", img: IMG.cursos.griega },
   { nombre: "Roma Antigua", estado: "Nuevo!", img: IMG.cursos.roma },
@@ -68,25 +35,6 @@ const CURSOS = [
 ];
 
 const TEMAS = ["Mitología", "Filosofía", "Roma", "Egipto"];
-
-const FAQ = [
-  {
-    pregunta: "¿Es gratis?",
-    respuesta: "Puedes descargar Kronika y empezar tus primeras lecciones sin costo.",
-  },
-  {
-    pregunta: "¿Para qué edades es?",
-    respuesta: "Está pensada para cualquiera que quiera aprender historia de forma entretenida.",
-  },
-  {
-    pregunta: "¿Cuánto dura cada lección?",
-    respuesta: "Unos 5 minutos, para que puedas hacerla en cualquier momento.",
-  },
-  {
-    pregunta: "¿Funciona sin conexión?",
-    respuesta: "Pronto podrás descargar lecciones para estudiar sin internet.",
-  },
-];
 
 function Titulo({ children, className = "" }) {
   return (
@@ -331,37 +279,54 @@ function Temas() {
 
 function Instituciones() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 py-10">
+    <section className="mx-auto w-full max-w-6xl px-6 py-16 md:py-20">
       <Reveal dir="zoom">
-        <div className="relative flex flex-col items-start justify-between gap-6 overflow-hidden rounded-3xl bg-azul p-8 text-white md:flex-row md:items-center md:px-12 md:py-10">
-          <span
-            aria-hidden="true"
-            className="flota-lento absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10"
-          />
-          <span
-            aria-hidden="true"
-            className="flota absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-white/10"
-          />
-          <div className="relative">
-            <h2 className="font-display text-3xl font-bold md:text-4xl">
-              Kronika para instituciones
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed">
-              [Beneficios Para Colegios Y Profesores: Seguimiento De Progreso,
-              Grupos, Contenido Alineado Al Currículo.]
-            </p>
-          </div>
+        <header className="mx-auto max-w-xl text-center">
+          <h2 className="font-display text-3xl font-bold text-gray-900 md:text-4xl">
+            Kronika para <span className="text-azul">colegios</span>
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-gray-500">
+            Descubrí los beneficios que ofrece nuestra versión educativa para
+            colegios y profesores.
+          </p>
+        </header>
+ 
+        <ul className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
+          {HERRAMIENTAS.map(({ titulo, descripcion, img }, i) => (
+            <Reveal delay={i * 220} className="flex-1">
+              <li key={titulo}>
+                <div className="flex aspect-[8/5] w-full items-center justify-center rounded-3xl border border-gray-200 bg-white">
+                  <img src={img} alt={titulo} className="h-full w-full object-contain" />
+                </div>
+                <h3 className="mt-6 font-display text-xl font-bold text-gray-900">
+                  {titulo}
+                </h3>
+                <p className="mt-3 max-w-xs text-base leading-relaxed text-gray-800">
+                  {descripcion}
+                </p>
+              </li>
+            </Reveal>
+          ))}
+        </ul>
+        
+        <div className="mt-14 flex justify-center md:mt-16">
           <Link
             to="/educativo"
-            className="group relative shrink-0 rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="group inline-flex items-center gap-2 rounded-xl bg-azul px-8 py-4 text-base font-semibold text-white transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-azul"
           >
-            Mas Informacion
-            <span
+            Más información
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden="true"
-              className="ml-2 inline-block transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none"
+              className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none"
             >
-              →
-            </span>
+              <path d="M7 17 17 7M8 7h9v9" />
+            </svg>
           </Link>
         </div>
       </Reveal>
