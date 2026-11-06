@@ -6,7 +6,7 @@ import { auth, db, storage } from "../firebase";
 // Roles que pueden subir imágenes -> carpeta raíz y subcarpetas permitidas.
 // El profesor no tiene "jefes": no crea nodos jefe (ver storage.rules).
 export const SUBIDA_POR_ROL = {
-  editor: { raiz: "editores", carpetas: ["iconos-cursos", "lecturas", "jefes"] },
+  editor: { raiz: "editores", carpetas: ["iconos-cursos", "lecturas", "jefes", "coleccionables"] },
   profesor: { raiz: "aulas", carpetas: ["iconos-cursos", "lecturas"] },
 };
 
@@ -14,12 +14,13 @@ export const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/gif
 export const MAX_MB = 5;
 
 // Carpetas de Storage: imagenes/<editores|aulas>/<carpeta>/<uid>/<archivo>
-// editores: iconos-cursos, lecturas, jefes | aulas: iconos-cursos, lecturas
+// editores: iconos-cursos, lecturas, jefes, coleccionables | aulas: iconos-cursos, lecturas
 // (si agregás una nueva, agregala también en storage.rules)
 export const CARPETAS = {
   ICONO_CURSO: "iconos-cursos", // icono/portada de cada curso
   LECTURA: "lecturas", //          fotos dentro de los nodos de lectura
   JEFE: "jefes", //                imagen del jefe en los nodos jefe
+  COLECCIONABLE: "coleccionables", // imagen de cada coleccionable
 };
 
 const EXTENSION = {

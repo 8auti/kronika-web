@@ -17,6 +17,7 @@ import PanelOrganizacion from "./pages/institucion/PanelOrganizacion";
 import PanelCursos from "./pages/editor/PanelCursos";
 import PanelCurso from "./pages/editor/PanelCurso";
 import PanelNodo from "./pages/editor/PanelNodo";
+import PanelColeccionables from "./pages/editor/PanelColeccionables";
 import PanelAulas from "./pages/profesor/PanelAulas";
 import PanelCursosAula from "./pages/profesor/PanelCursosAula";
 import Metricas from "./pages/admin/PanelMetricas.jsx";
@@ -74,6 +75,7 @@ export default function App() {
                 path="/cursos/:cursoId/nodos/:nodoId"
                 element={<PanelNodo />}
               />
+              <Route path="/coleccionables" element={<PanelColeccionables />} />
             </Route>
  
             {/* Profesor: aulas y sus cursos */}
