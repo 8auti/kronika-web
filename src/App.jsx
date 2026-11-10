@@ -23,6 +23,7 @@ import PanelCursosAula from "./pages/profesor/PanelCursosAula";
 import Metricas from "./pages/admin/PanelMetricas.jsx";
 import PanelComunicacion from "./pages/profesor/PanelComunicacion";
 import ForoAula from "./pages/profesor/ForoAula";
+import PanelProgreso from "./pages/profesor/PanelProgreso";
  
 // Layout con navbar: todas las rutas anidadas lo muestran
 function MainLayout() {
@@ -95,6 +96,14 @@ export default function App() {
               />
  
               {/* Foro de consultas: 1) elegir aula  2) entrar al foro */}
+              {/* Progreso: 1) aulas  2) alumnos del aula  3) detalle del alumno */}
+              <Route path="/progreso" element={<PanelProgreso />} />
+              <Route path="/progreso/:aulaId" element={<PanelProgreso />} />
+              <Route
+                path="/progreso/:aulaId/:alumnoId"
+                element={<PanelProgreso />}
+              />
+
               <Route path="/comunicacion" element={<PanelComunicacion />} />
               <Route path="/comunicacion/:aulaId" element={<ForoAula />} />
             </Route>
