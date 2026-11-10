@@ -128,10 +128,10 @@ export default function PanelColeccionables() {
 
   return (
     <main className="mx-auto max-w-7xl p-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold truncate">Coleccionables</h1>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-3xl font-bold">Coleccionables</h1>
         {!mostrarFormulario && (
-          <button type="button" onClick={abrirNuevo} className={`${btnPrimario} shrink-0`}>
+          <button type="button" onClick={abrirNuevo} className={`${btnPrimario} self-start sm:self-auto`}>
             + Nuevo coleccionable
           </button>
         )}
