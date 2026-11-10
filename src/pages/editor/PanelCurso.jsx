@@ -419,11 +419,11 @@ export default function PanelCurso() {
           : undefined
       }
       onClick={() => navigate(`${rutaCursos}/${cursoId}/nodos/${n.id}`)}
-      className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 transition hover:shadow-md ${
+      className={`flex min-w-0 cursor-pointer flex-col items-stretch gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${
         arrastrando === n.id ? "opacity-40" : ""
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {puedeEditar && (
           <GripVertical
             size={18}
@@ -445,7 +445,7 @@ export default function PanelCurso() {
       </div>
 
       {puedeEditar && (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => navigate(`${rutaCursos}/${cursoId}/nodos/${n.id}`)}
@@ -470,8 +470,8 @@ export default function PanelCurso() {
   );
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <nav className="mb-2 text-sm text-gray-500">
+    <main className="mx-auto w-full max-w-4xl min-w-0 px-3 py-4 sm:p-6">
+      <nav className="mb-3 flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-sm text-gray-500 break-words">
         {aulaId ? (
           <>
             <Link to="/aulas" className="hover:text-indigo-600">
@@ -502,9 +502,9 @@ export default function PanelCurso() {
 
       {curso && !sinAcceso && (
         <>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-6 flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-3xl font-bold">{tituloCurso(curso)}</h1>
+              <h1 className="break-words text-2xl font-bold sm:text-3xl">{tituloCurso(curso)}</h1>
               <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${
@@ -520,7 +520,7 @@ export default function PanelCurso() {
             </div>
 
             {puedeEditar && (
-              <div className="flex gap-2">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <button
                   type="button"
                   onClick={alternarPublicado}
@@ -547,7 +547,7 @@ export default function PanelCurso() {
           {puedeEditar && formUnidad && (
             <form
               onSubmit={guardarFormUnidad}
-              className="mb-6 space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="mb-6 min-w-0 space-y-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5"
             >
               <h2 className="text-lg font-semibold">
                 {formUnidad.id ? "Editar unidad" : "Nueva unidad"}
@@ -578,7 +578,7 @@ export default function PanelCurso() {
                 </label>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <button
                   type="submit"
                   disabled={guardando}
@@ -600,7 +600,7 @@ export default function PanelCurso() {
           {puedeEditar && formNodo && (
             <form
               onSubmit={guardarFormNodo}
-              className="mb-6 space-y-4 rounded-xl border border-indigo-200 bg-white p-5 shadow-sm"
+              className="mb-6 min-w-0 space-y-4 rounded-xl border border-indigo-200 bg-white p-3 shadow-sm sm:p-5"
             >
               <h2 className="text-lg font-semibold">Nuevo nodo</h2>
 
@@ -653,14 +653,14 @@ export default function PanelCurso() {
                 )}
               </div>
 
-              <p className="text-xs text-gray-500">
+              <p className="shrink-0 text-xs text-gray-500">
                 Unidad:{" "}
                 {unidades.find((u) => u.id === formNodo.unidadId)?.titulo ??
                   "Sin unidad"}
                 . Después de crearlo vas a poder cargar su contenido.
               </p>
 
-              <div className="flex gap-2">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <button
                   type="submit"
                   disabled={guardando}
@@ -705,7 +705,7 @@ export default function PanelCurso() {
                   {...zona(clave, u.id)}
                   className={claseZona(
                     clave,
-                    "rounded-xl border border-gray-200 bg-gray-50 p-4"
+                    "min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4"
                   )}
                 >
                   <h2>
@@ -713,9 +713,9 @@ export default function PanelCurso() {
                       type="button"
                       onClick={() => alternarUnidad(u.id)}
                       aria-expanded={abierta}
-                      className="flex w-full items-center justify-between gap-3 text-left"
+                      className="flex w-full min-w-0 flex-col items-start gap-2 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
                         {abierta ? (
                           <ChevronDown size={20} className="text-gray-500" />
                         ) : (
@@ -724,11 +724,11 @@ export default function PanelCurso() {
                         <span className="text-sm font-normal text-gray-500">
                           Unidad {u.orden}
                         </span>
-                        <span className="text-lg font-semibold text-gray-900">
+                        <span className="min-w-0 break-words text-base font-semibold text-gray-900 sm:text-lg">
                           {u.titulo}
                         </span>
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="shrink-0 text-xs text-gray-500">
                         {nodosU.length} nodo{nodosU.length === 1 ? "" : "s"}
                       </span>
                     </button>
@@ -737,7 +737,7 @@ export default function PanelCurso() {
                   {abierta && (
                     <div className="mt-3">
                       {puedeEditar && (
-                        <div className="mb-3 flex gap-2">
+                        <div className="mb-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => abrirNodoNuevo(u.id)}
@@ -783,10 +783,10 @@ export default function PanelCurso() {
                 {...zona(SIN_UNIDAD, null)}
                 className={claseZona(
                   SIN_UNIDAD,
-                  "rounded-xl border border-dashed border-red-300 bg-red-50 p-4"
+                  "min-w-0 rounded-xl border border-dashed border-red-300 bg-red-50 p-3 sm:p-4"
                 )}
               >
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                   <h2 className="text-lg font-semibold text-red-800">
                     Nodos sin unidad
                     <span className="ml-2 text-xs font-normal text-red-700">
