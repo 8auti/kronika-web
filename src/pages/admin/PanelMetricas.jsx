@@ -168,8 +168,8 @@ export default function Metricas() {
   const indiceMax = (arr) => arr.indexOf(Math.max(...arr));
 
   return (
-    <div className="min-w-0 text-slate-900">
-      <header className="mb-6 flex items-start justify-between gap-4">
+    <div className="w-full min-w-0 overflow-x-hidden text-slate-900">
+      <header className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-xl font-semibold">Métricas</h1>
           {d && <p className="mt-0.5 text-sm text-slate-500">Actualizado: {d.actualizado}</p>}
@@ -177,7 +177,7 @@ export default function Metricas() {
         <button
           onClick={cargar}
           disabled={cargando}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-default disabled:opacity-60"
+          className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-default disabled:opacity-60 sm:w-auto"
         >
           {cargando ? 'Actualizando…' : 'Actualizar'}
         </button>
@@ -187,9 +187,9 @@ export default function Metricas() {
       {!d && !error && <p className="py-10 text-sm text-slate-500">Cargando métricas…</p>}
 
       {d && (
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4 sm:space-y-5">
           {/* KPIs: misma estructura en las cuatro */}
-          <section className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-4">
+          <section className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-4">
             <Kpi
               titulo="Usuarios"
               valor={d.totalUsuarios}
@@ -222,19 +222,19 @@ export default function Metricas() {
           </section>
 
           {/* Tendencia + plan */}
-          <section className="flex flex-wrap gap-4">
+          <section className="grid min-w-0 grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
             <Tarjeta
-              className="min-w-[340px] flex-[2]"
+              className="min-w-0"
               titulo="Usuarios nuevos"
               subtitulo={`Últimos ${DIAS} días vs. los ${DIAS} anteriores`}
             >
               {d.tieneFechas ? (
                 <>
                   <p className="mb-2 text-3xl font-semibold tabular-nums">{d.nuevos}</p>
-                  <ChartBox min={240}>
+                  <ChartBox min={210}>
                     <GraficaLinea data={d.serie} />
                   </ChartBox>
-                  <div className="mt-3 flex gap-5 text-xs text-slate-500">
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
                     <Leyenda color={INDIGO} texto="Este periodo" />
                     <Leyenda color={INDIGO_SUAVE} texto="Periodo anterior" />
                   </div>
@@ -245,7 +245,7 @@ export default function Metricas() {
             </Tarjeta>
 
             <Tarjeta
-              className="min-w-[280px] flex-1"
+              className="min-w-0"
               titulo="Usuarios por plan"
               subtitulo={`${d.totalUsuarios} usuarios en total`}
             >
@@ -259,7 +259,7 @@ export default function Metricas() {
           </section>
 
           {/* Tres tarjetas que llenan su alto */}
-          <section className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
+          <section className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
             <Tarjeta titulo="Vidas por usuario" subtitulo="Cuántos usuarios tienen cada cantidad">
               <ChartBox min={200}>
                 <BarrasVidas data={d.porVidas} />
@@ -289,7 +289,7 @@ export default function Metricas() {
 
 function Tarjeta({ titulo, subtitulo, className = '', children }) {
   return (
-    <div className={`flex flex-col rounded-2xl bg-white p-5 shadow-sm ${className}`}>
+    <div className={`flex min-w-0 flex-col rounded-2xl bg-white p-4 shadow-sm sm:p-5 ${className}`}>
       <h2 className="text-sm font-semibold text-slate-800">{titulo}</h2>
       {subtitulo && <p className="mb-4 mt-0.5 text-xs text-slate-400">{subtitulo}</p>}
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
@@ -300,8 +300,8 @@ function Tarjeta({ titulo, subtitulo, className = '', children }) {
 // Caja que se estira para ocupar todo el espacio libre de la tarjeta
 function ChartBox({ min = 200, children }) {
   return (
-    <div className="relative flex-1" style={{ minHeight: min }}>
-      <div className="absolute inset-0">{children}</div>
+    <div className="relative min-w-0 w-full flex-1" style={{ minHeight: min }}>
+      <div className="absolute inset-0 min-w-0">{children}</div>
     </div>
   );
 }
@@ -311,12 +311,12 @@ function Kpi({ titulo, valor, pie, variacion, barras = [], resaltar = 0 }) {
   const max = Math.max(...barras, 1);
 
   return (
-    <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm">
+    <div className="flex min-w-0 flex-col justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
       <p className="text-xs text-slate-500">{titulo}</p>
 
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex min-w-0 items-end justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-3xl font-semibold tabular-nums">{valor}</p>
+          <p className="break-words text-2xl font-semibold tabular-nums sm:text-3xl">{valor}</p>
           <p className="mt-2 text-xs text-slate-400">
             {variacion !== null && variacion !== undefined && (
               <span className={`mr-1 font-medium ${positiva ? 'text-indigo-600' : 'text-rose-500'}`}>
@@ -381,9 +381,9 @@ const tick = { fill: '#94a3b8', fontSize: 11 };
 function GraficaLinea({ data }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ left: -18, right: 8, top: 8 }}>
+      <LineChart data={data} margin={{ left: -24, right: 4, top: 8, bottom: 2 }}>
         <CartesianGrid vertical={false} stroke="#e8ecf3" strokeDasharray="4 4" />
-        <XAxis dataKey="dia" tick={tick} axisLine={false} tickLine={false} minTickGap={28} />
+        <XAxis dataKey="dia" tick={{ ...tick, fontSize: 9 }} axisLine={false} tickLine={false} minTickGap={24} />
         <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip contentStyle={tooltipStyle} />
         <Line
@@ -445,7 +445,7 @@ function BarrasVidas({ data }) {
   const max = Math.max(...data.map((d) => d.total), 0);
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ left: -24, right: 4, top: 8 }}>
+      <BarChart data={data} margin={{ left: -28, right: 4, top: 8, bottom: 2 }}>
         <CartesianGrid vertical={false} stroke="#e8ecf3" strokeDasharray="4 4" />
         <XAxis dataKey="nombre" tick={tick} axisLine={false} tickLine={false} />
         <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false} />
@@ -472,8 +472,8 @@ function Gauge({ activos, total }) {
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-4">
-      <div className="flex flex-1 items-center justify-center">
-        <div className="relative w-full max-w-[300px]">
+      <div className="flex min-w-0 flex-1 items-center justify-center">
+        <div className="relative w-full max-w-[260px] sm:max-w-[300px]">
           <svg viewBox="0 0 200 110" className="w-full" role="img" aria-label={`${pct}% de cuentas activas`}>
             <path d={arco} fill="none" stroke="#e0e7ff" strokeWidth="12" strokeLinecap="round" />
             <path
@@ -514,9 +514,9 @@ function Gauge({ activos, total }) {
 // Cifras clave por categoría, separadas por líneas finas
 function Resumen({ data, colores = false }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] divide-x divide-slate-100">
+    <div className="grid min-w-0 grid-cols-2 gap-y-3 sm:grid-cols-[repeat(auto-fit,minmax(80px,1fr))] sm:divide-x sm:divide-slate-100">
       {data.map((d, i) => (
-        <div key={d.nombre} className="px-3 first:pl-0">
+        <div key={d.nombre} className="min-w-0 px-2 sm:px-3 sm:first:pl-0">
           <p className="text-xl font-semibold tabular-nums">{d.total}</p>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
             {colores && (
@@ -542,15 +542,15 @@ function DotPlot({ data, columnas = false }) {
     <ul
       className={
         columnas
-          ? 'grid grid-cols-[repeat(auto-fit,minmax(340px,1fr))] gap-x-12 gap-y-3'
-          : 'flex flex-1 flex-col justify-around gap-3'
+          ? 'grid min-w-0 grid-cols-1 gap-x-8 gap-y-3 lg:grid-cols-2'
+          : 'flex min-w-0 flex-1 flex-col justify-around gap-3'
       }
     >
       {data.map((d) => {
         const pct = (d.total / max) * 100;
         return (
-          <li key={d.nombre} className="flex items-center gap-3">
-            <span className="w-28 shrink-0 truncate text-sm text-slate-600" title={d.nombre}>
+          <li key={d.nombre} className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <span className="w-20 shrink-0 truncate text-xs text-slate-600 sm:w-28 sm:text-sm" title={d.nombre}>
               {d.nombre}
             </span>
             <div className="relative mx-1.5 h-4 flex-1">
@@ -564,7 +564,7 @@ function DotPlot({ data, columnas = false }) {
                 style={{ left: `${pct}%` }}
               />
             </div>
-            <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums">
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums sm:text-sm">
               {d.total}
             </span>
           </li>

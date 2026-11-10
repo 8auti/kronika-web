@@ -27,8 +27,6 @@ import {
   inputClase,
 } from "../../components/nodos/estilos";
 
-// Solo el contenido propio del tipo (lo demás es metadata del nodo).
-// Se normaliza por si el nodo guardado tiene campos incompletos.
 function extraerContenido(nodo) {
   const base = contenidoVacio(nodo.tipo);
 
@@ -61,14 +59,13 @@ export default function PanelNodo() {
   const [aula, setAula] = useState(null);
   const [curso, setCurso] = useState(null);
   const [nodo, setNodo] = useState(null);
-  const [nodos, setNodos] = useState([]); // para validar que el orden no se repita
+  const [nodos, setNodos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [guardado, setGuardado] = useState(false);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
 
-  // Formulario: metadata + contenido del tipo
   const [titulo, setTitulo] = useState("");
   const [unidadId, setUnidadId] = useState("");
   const [orden, setOrden] = useState(1);
@@ -90,7 +87,6 @@ export default function PanelNodo() {
         setNodos(nodosData);
         if (nodoData) {
           setTitulo(nodoData.titulo ?? "");
-          // Sin unidad ("") si no tiene o si apunta a una unidad que ya no existe
           const existe = (cursoData?.unidades ?? []).some(
             (u) => u.id === nodoData.unidadId
           );
@@ -108,7 +104,6 @@ export default function PanelNodo() {
     cargar();
   }, [cursoId, nodoId, aulaId]);
 
-  // El curso debe pertenecer al aula de la URL y el aula a este profesor
   const sinAcceso =
     !cargando &&
     (aulaId
@@ -119,8 +114,6 @@ export default function PanelNodo() {
   const unidades = unidadesOrdenadas(curso);
   const idsUnidades = new Set(unidades.map((u) => u.id));
 
-  // Otros nodos de una unidad (el orden es propio de cada unidad). Un nodo
-  // que apunta a una unidad borrada cuenta como "sin unidad" ("").
   const otrosDeUnidad = (id) =>
     nodos.filter(
       (n) =>
@@ -128,8 +121,6 @@ export default function PanelNodo() {
         (idsUnidades.has(n.unidadId) ? n.unidadId : "") === id
     );
 
-  // Al cambiar de unidad: conserva el orden si vuelve a la unidad original y
-  // está libre; si no, propone el siguiente libre de la unidad destino.
   const cambiarUnidad = (id) => {
     setUnidadId(id);
     if (!id) return;
@@ -152,8 +143,6 @@ export default function PanelNodo() {
     const tituloLimpio = titulo.trim();
 
     if (!tituloLimpio) return setError("El título es obligatorio.");
-    // Sin unidad no hay orden; con unidad, si el número ya está usado el nodo
-    // se inserta ahí y los demás se corren
     if (unidadId) {
       const errorOrden = validarOrden(orden);
       if (errorOrden) return setError(errorOrden);
@@ -167,12 +156,10 @@ export default function PanelNodo() {
       setGuardando(true);
       await actualizarNodo(cursoId, nodoId, {
         titulo: tituloLimpio,
-        unidadId: unidadId || null, // null = sin unidad
+        unidadId: unidadId || null,
         orden: ordenNum,
         ...limpiarContenido(nodo.tipo, contenido),
       });
-      // Los demás nodos pueden haberse renumerado: se vuelven a leer y se
-      // muestra el orden final de este nodo
       const nuevos = await getNodos(cursoId);
       const propio = nuevos.find((n) => n.id === nodoId);
       setNodos(nuevos);
@@ -192,8 +179,8 @@ export default function PanelNodo() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <nav className="mb-2 text-sm text-gray-500">
+    <main className="mx-auto w-full max-w-4xl min-w-0 px-3 py-4 sm:p-6">
+      <nav className="mb-3 flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-sm text-gray-500 break-words">
         {aulaId ? (
           <>
             <Link to="/aulas" className="hover:text-indigo-600">
@@ -227,8 +214,8 @@ export default function PanelNodo() {
 
       {nodo && !sinAcceso && contenido && (
         <>
-          <div className="mb-6 flex items-center gap-3">
-            <h1 className="text-3xl font-bold">Nodo</h1>
+          <div className="mb-6 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <h1 className="text-2xl font-bold sm:text-3xl">Nodo</h1>
             <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700">
               {etiquetaTipoNodo(nodo.tipo)}
             </span>
@@ -236,7 +223,7 @@ export default function PanelNodo() {
 
           <form
             onSubmit={guardar}
-            className="space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            className="space-y-5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5"
           >
             <div
               className={`grid gap-4 ${
@@ -315,7 +302,7 @@ export default function PanelNodo() {
               <p className="text-green-700">Nodo guardado correctamente.</p>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <button
                 type="submit"
                 disabled={guardando || subiendoImagen}

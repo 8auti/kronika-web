@@ -38,14 +38,11 @@ import {
 // Clave de la zona "Nodos sin unidad" para el arrastre
 const SIN_UNIDAD = "sin-unidad";
 
-// Mapa del curso: unidades (array del doc del curso) con sus nodos
-// (subcolección). Se arma con 2 lecturas: el curso y sus nodos.
 export default function PanelCurso() {
   const { aulaId, cursoId } = useParams();
   const { rol, usuario } = useAuth();
   const navigate = useNavigate();
 
-  // Dentro de un aula edita el profesor; en /cursos edita el editor
   const tiposNodo = tiposNodoPermitidos(rol);
   const puedeEditar = aulaId ? rol === "profesor" : rol === "editor";
   const rutaCursos = aulaId ? `/aulas/${aulaId}/cursos` : "/cursos";
@@ -57,17 +54,12 @@ export default function PanelCurso() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
-  // Formulario de unidad (id = editando; null = nueva)
   const [formUnidad, setFormUnidad] = useState(null);
-  // Formulario de nodo nuevo (unidadId null = sin unidad)
   const [formNodo, setFormNodo] = useState(null);
 
-  // Unidades desplegadas (por defecto todas cerradas)
   const [abiertas, setAbiertas] = useState(() => new Set());
-  // Arrastre: id del nodo que se arrastra y zona sobre la que está
   const [arrastrando, setArrastrando] = useState(null);
   const [destino, setDestino] = useState(null);
-  // Nodo sobre el que está el cursor y si caería antes o después de él
   const [sobreNodo, setSobreNodo] = useState(null);
 
   const cargar = async () => {
@@ -94,7 +86,6 @@ export default function PanelCurso() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursoId]);
 
-  // El curso debe pertenecer al aula de la URL y el aula a este profesor
   const sinAcceso =
     !cargando &&
     (aulaId
@@ -109,17 +100,14 @@ export default function PanelCurso() {
     nodos
       .filter((n) => n.unidadId === unidadId)
       .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
-  // Sin unidad: unidadId null/ausente, o apuntando a una unidad que ya no
-  // existe. No tienen orden, así que se listan alfabéticamente.
+  
   const huerfanos = nodos
     .filter((n) => !idsUnidades.has(n.unidadId))
     .sort((a, b) => (a.titulo ?? "").localeCompare(b.titulo ?? ""));
 
-  // El orden de los nodos es propio de cada unidad
   const siguienteOrdenNodo = (unidadId) => siguienteOrden(nodosDe(unidadId));
   const siguienteOrdenUnidad = () => siguienteOrden(unidades);
 
-  // Ejecuta una acción de escritura con manejo común de errores
   const ejecutar = async (accion, mensajeError) => {
     try {
       setError("");
@@ -142,15 +130,11 @@ export default function PanelCurso() {
       return nuevo;
     });
 
-  /* ------------------------------ Publicar ------------------------------ */
-
   const alternarPublicado = () =>
     ejecutar(
       () => setPublicado(cursoId, !curso.publicado),
       "No se pudo cambiar el estado del curso."
     );
-
-  /* ------------------------------ Unidades ------------------------------ */
 
   const abrirUnidadNueva = () => {
     setFormNodo(null);
@@ -195,15 +179,12 @@ export default function PanelCurso() {
     );
   };
 
-  /* ------------------------------- Nodos -------------------------------- */
-
   const abrirNodoNuevo = (unidadId) => {
     setFormUnidad(null);
     setFormNodo({
       unidadId,
       titulo: "",
       tipo: tiposNodo[0].valor,
-      // Sin unidad no hay orden
       orden: unidadId ? siguienteOrdenNodo(unidadId) : null,
     });
   };
@@ -213,7 +194,6 @@ export default function PanelCurso() {
     const titulo = formNodo.titulo.trim();
 
     if (!titulo) return setError("El título del nodo es obligatorio.");
-    // El orden solo existe dentro de una unidad
     if (formNodo.unidadId) {
       const errorOrden = validarOrden(formNodo.orden);
       if (errorOrden) return setError(errorOrden);
@@ -231,7 +211,6 @@ export default function PanelCurso() {
         },
         rol
       );
-      // Se crea vacío y se abre el editor para cargar su contenido
       navigate(`${rutaCursos}/${cursoId}/nodos/${ref.id}`);
     } catch (err) {
       console.error(err);
@@ -248,19 +227,14 @@ export default function PanelCurso() {
     );
   };
 
-  /* --------------------------- Arrastrar nodos --------------------------- */
-
-  // Handlers de una zona de destino (unidad o "sin unidad").
-  // `unidadId` es el valor que se guarda en el nodo (null = sin unidad).
   const zona = (clave, unidadId) => ({
     onDragOver: (e) => {
       if (!puedeEditar || !arrastrando) return;
-      e.preventDefault(); // necesario para poder soltar
+      e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       if (destino !== clave) setDestino(clave);
     },
     onDragLeave: (e) => {
-      // Ignora el "leave" al pasar por encima de un hijo de la zona
       if (!e.currentTarget.contains(e.relatedTarget)) setDestino(null);
     },
     onDrop: (e) => {
@@ -277,11 +251,7 @@ export default function PanelCurso() {
     const nodo = nodos.find((n) => n.id === id);
     if (!nodo || (nodo.unidadId ?? null) === unidadId) return;
 
-    // Al cambiar de unidad el nodo queda al final de la unidad destino (el
-    // orden no se arrastra de la anterior); sin unidad no tiene orden.
     const orden = unidadId ? siguienteOrdenNodo(unidadId) : null;
-
-    // Actualización optimista; si falla se vuelve al estado anterior
     const anteriores = nodos;
     setNodos((prev) =>
       prev.map((n) => (n.id === id ? { ...n, unidadId, orden } : n))
@@ -291,7 +261,6 @@ export default function PanelCurso() {
     try {
       setError("");
       await actualizarNodo(cursoId, id, { unidadId, orden });
-      // La unidad de origen se renumera: se vuelven a leer los nodos
       setNodos(await getNodos(cursoId));
       setCurso((c) => ({ ...c, version: (c.version ?? 1) + 1 }));
     } catch (e) {
@@ -301,8 +270,6 @@ export default function PanelCurso() {
     }
   };
 
-  // Mueve un nodo a `unidadId` en la posición `orden` (1 = primero).
-  // Actualiza la pantalla al instante y revierte si falla la escritura.
   const aplicarMovimiento = async (nodo, unidadId, orden) => {
     const nuevoOrden = new Map();
 
@@ -310,7 +277,6 @@ export default function PanelCurso() {
     destinoLista.splice(orden - 1, 0, nodo);
     destinoLista.forEach((n, i) => nuevoOrden.set(n.id, i + 1));
 
-    // Si cambia de unidad, la de origen cierra el hueco
     if (nodo.unidadId && nodo.unidadId !== unidadId) {
       nodosDe(nodo.unidadId)
         .filter((n) => n.id !== nodo.id)
@@ -341,7 +307,6 @@ export default function PanelCurso() {
     }
   };
 
-  // Suelta el nodo arrastrado antes/después de `objetivo`
   const soltarSobreNodo = async (objetivo, despues) => {
     const id = arrastrando;
     setArrastrando(null);
@@ -355,9 +320,8 @@ export default function PanelCurso() {
     const sinElMovido = nodosDe(unidadId).filter((n) => n.id !== id);
     const j = sinElMovido.findIndex((n) => n.id === objetivo.id);
     if (j < 0) return;
-    const posicion = j + (despues ? 1 : 0); // índice final (base 0)
+    const posicion = j + (despues ? 1 : 0);
 
-    // Misma unidad y misma posición: no hay nada que hacer
     const actual = nodosDe(unidadId).findIndex((n) => n.id === id);
     if (actual === posicion) return;
 
@@ -366,8 +330,6 @@ export default function PanelCurso() {
 
   const claseZona = (clave, base) =>
     `${base} ${destino === clave ? "ring-2 ring-indigo-400" : ""}`;
-
-  /* ------------------------------ Render -------------------------------- */
 
   const renderNodo = (n, conOrden = true) => (
     <li
@@ -388,7 +350,7 @@ export default function PanelCurso() {
             onDragOver: (e) => {
               if (!arrastrando || arrastrando === n.id) return;
               e.preventDefault();
-              e.stopPropagation(); // la unidad no debe tratarlo como "al final"
+              e.stopPropagation();
               e.dataTransfer.dropEffect = "move";
               const r = e.currentTarget.getBoundingClientRect();
               const despues = e.clientY > r.top + r.height / 2;
@@ -432,12 +394,12 @@ export default function PanelCurso() {
           />
         )}
         {conOrden && (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700">
             {n.orden}
           </span>
         )}
-        <div>
-          <h4 className="font-medium text-gray-900">{n.titulo}</h4>
+        <div className="min-w-0">
+          <h4 className="break-words font-medium text-gray-900">{n.titulo}</h4>
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
             {etiquetaTipoNodo(n.tipo)}
           </span>
@@ -503,7 +465,7 @@ export default function PanelCurso() {
       {curso && !sinAcceso && (
         <>
           <div className="mb-6 flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
+            <div className="min-w-0">
               <h1 className="break-words text-2xl font-bold sm:text-3xl">{tituloCurso(curso)}</h1>
               <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
                 <span
@@ -717,9 +679,9 @@ export default function PanelCurso() {
                     >
                       <span className="flex min-w-0 flex-wrap items-center gap-2">
                         {abierta ? (
-                          <ChevronDown size={20} className="text-gray-500" />
+                          <ChevronDown size={20} className="text-gray-500 shrink-0" />
                         ) : (
-                          <ChevronRight size={20} className="text-gray-500" />
+                          <ChevronRight size={20} className="text-gray-500 shrink-0" />
                         )}
                         <span className="text-sm font-normal text-gray-500">
                           Unidad {u.orden}
@@ -777,7 +739,6 @@ export default function PanelCurso() {
               );
             })}
 
-            {/* Siempre visible para el editor: sirve de destino al arrastrar */}
             {(puedeEditar || huerfanos.length > 0) && (
               <section
                 {...zona(SIN_UNIDAD, null)}
