@@ -27,7 +27,7 @@ export const menuPorRol = {
   profesor: [
     { to: "/aulas", label: "Aulas", icon: School },
     { to: "/reportes", label: "Reportes de desempeño", icon: ClipboardList },
-    { to: "/progreso", label: "Progreso de alumnos", icon: TrendingUp },
+    { to: "/progreso", label: "Vista de usuarios", icon: TrendingUp },
     { to: "/comunicacion", label: "Comunicación", icon: MessageSquare },
   ],
 };

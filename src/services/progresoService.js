@@ -1,4 +1,12 @@
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  writeBatch,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { getCursosDeAula } from "./aulasService";
 import { getNodos } from "./cursosService";
@@ -37,6 +45,23 @@ export async function getAlumnosDeAula(aulaId) {
   return alumnos.sort((a, b) =>
     nombreAlumno(a).localeCompare(nombreAlumno(b))
   );
+}
+
+/**
+ * Saca al alumno del aula borrando su inscripción. No toca el perfil del
+ * alumno ni su progreso (eso es del alumno); solo deja de pertenecer al aula.
+ */
+export async function eliminarAlumnoDeAula(aulaId, alumnoId) {
+  const snap = await getDocs(
+    query(
+      collection(db, "inscripcion_aula"),
+      where("aula_id", "==", aulaId),
+      where("alumno_id", "==", alumnoId)
+    )
+  );
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
 }
 
 // Si el perfil no se puede leer, el alumno igual aparece (sin nombre)
