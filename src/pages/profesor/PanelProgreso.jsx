@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Trash2 } from "lucide-react";
 
 import { getAula, getAulas } from "../../services/aulasService";
 import { tituloCurso, unidadesOrdenadas } from "../../services/cursosService";
@@ -8,6 +8,7 @@ import {
   getAlumno,
   getAlumnosDeAula,
   getCursosConNodos,
+  eliminarAlumnoDeAula,
   getProgresoAlumno,
   nombreAlumno,
   resumenCurso,
@@ -57,7 +58,7 @@ function VistaAulas() {
 
   return (
     <>
-      <h1 className="mb-6 text-3xl font-bold">Progreso de alumnos</h1>
+      <h1 className="mb-6 text-3xl font-bold">Vista de usuarios</h1>
       {error && <p className="text-red-600">{error}</p>}
       {cargando && <p>Cargando aulas...</p>}
       {!cargando && !error && aulas.length === 0 && (
@@ -85,6 +86,25 @@ function VistaAlumnos({ aulaId }) {
   const [progresos, setProgresos] = useState({}); // alumnoId -> progreso por curso
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [eliminandoId, setEliminandoId] = useState(null);
+
+  const eliminarAlumno = async (alumno) => {
+    const confirmado = window.confirm(
+      `¿Seguro que querés eliminar a "${nombreAlumno(alumno)}" del curso?\n\nDejará de pertenecer al aula y ya no vas a ver su progreso.`
+    );
+    if (!confirmado) return;
+
+    setEliminandoId(alumno.id);
+    try {
+      await eliminarAlumnoDeAula(aulaId, alumno.id);
+      setAlumnos((prev) => prev.filter((a) => a.id !== alumno.id));
+    } catch (e) {
+      console.error(e);
+      window.alert("No se pudo eliminar al alumno. Intentá de nuevo.");
+    } finally {
+      setEliminandoId(null);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -133,30 +153,44 @@ function VistaAlumnos({ aulaId }) {
           const total = resumenTotal(cursos, progresos[alumno.id]);
           const ultima = formatearFecha(ultimaActividad(progresos[alumno.id]));
           return (
-            <Link
+            <div
               key={alumno.id}
-              to={`/progreso/${aulaId}/${alumno.id}`}
-              className={`${tarjetaLink} flex flex-wrap items-center gap-x-6 gap-y-2`}
+              className={`${tarjetaLink} flex items-center gap-3`}
             >
-              <div className="min-w-[200px] flex-1">
-                <p className="font-semibold">{nombreAlumno(alumno)}</p>
-                {alumno.nombre && alumno.email && (
-                  <p className="text-sm text-gray-500">{alumno.email}</p>
-                )}
-              </div>
-              <div className="w-full sm:w-64">
-                <div className="mb-1 flex justify-between text-xs text-gray-600">
-                  <span>
-                    {total.completados} de {total.total} nodos
-                  </span>
-                  <span>{total.porcentaje}%</span>
+              <Link
+                to={`/progreso/${aulaId}/${alumno.id}`}
+                className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-2"
+              >
+                <div className="min-w-[200px] flex-1">
+                  <p className="font-semibold">{nombreAlumno(alumno)}</p>
+                  {alumno.nombre && alumno.email && (
+                    <p className="text-sm text-gray-500">{alumno.email}</p>
+                  )}
                 </div>
-                <Barra porcentaje={total.porcentaje} />
-              </div>
-              <p className="w-full text-xs text-gray-500 sm:w-40">
-                {ultima ? `Última actividad: ${ultima}` : "Sin actividad"}
-              </p>
-            </Link>
+                <div className="w-full sm:w-64">
+                  <div className="mb-1 flex justify-between text-xs text-gray-600">
+                    <span>
+                      {total.completados} de {total.total} nodos
+                    </span>
+                    <span>{total.porcentaje}%</span>
+                  </div>
+                  <Barra porcentaje={total.porcentaje} />
+                </div>
+                <p className="w-full text-xs text-gray-500 sm:w-40">
+                  {ultima ? `Última actividad: ${ultima}` : "Sin actividad"}
+                </p>
+              </Link>
+              <button
+                type="button"
+                onClick={() => eliminarAlumno(alumno)}
+                disabled={eliminandoId === alumno.id}
+                title="Eliminar alumno del curso"
+                aria-label={`Eliminar a ${nombreAlumno(alumno)} del curso`}
+                className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
           );
         })}
       </div>
