@@ -90,7 +90,7 @@ function VistaAlumnos({ aulaId }) {
 
   const eliminarAlumno = async (alumno) => {
     const confirmado = window.confirm(
-      `¿Seguro que querés eliminar a "${nombreAlumno(alumno)}" del curso?\n\nDejará de pertenecer al aula y ya no vas a ver su progreso.`
+      `¿Seguro que querés eliminar a "${nombreAlumno(alumno)}" del aula?\n\nDejará de pertenecer al aula y ya no vas a ver su progreso.`
     );
     if (!confirmado) return;
 
@@ -184,8 +184,8 @@ function VistaAlumnos({ aulaId }) {
                 type="button"
                 onClick={() => eliminarAlumno(alumno)}
                 disabled={eliminandoId === alumno.id}
-                title="Eliminar alumno del curso"
-                aria-label={`Eliminar a ${nombreAlumno(alumno)} del curso`}
+                title="Eliminar alumno del aula"
+                aria-label={`Eliminar a ${nombreAlumno(alumno)} del aula`}
                 className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-5 w-5" />
