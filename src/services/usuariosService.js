@@ -40,14 +40,26 @@ export const RUTA_INICIO_POR_ROL = {
   profesor: "/aulas",
 };
 
-// Rol de quien se registra solo: no está en ROLES_CON_ACCESO,
-export const ROL_REGISTRO = "usuario";
+// Roles que una persona puede elegir al registrarse por su cuenta
+export const ROL_USUARIO = "usuario";
+export const ROL_PROFESOR = "profesor";
+export const ROLES_REGISTRO = [ROL_USUARIO, ROL_PROFESOR];
 
-export async function crearPerfilPropio(uid, { nombre, email }) {
+// Rol por defecto de quien se registra solo
+export const ROL_REGISTRO = ROL_USUARIO;
+
+export async function crearPerfilPropio(
+  uid,
+  { nombre, email, rol = ROL_REGISTRO },
+) {
+  if (!ROLES_REGISTRO.includes(rol)) {
+    throw new Error("Rol de registro inválido.");
+  }
+
   await setDoc(doc(db, "users", uid), {
     nombre: nombre.trim(),
     email: email.trim(),
-    rol: ROL_REGISTRO,
+    rol,
     estado: ESTADOS.ACTIVO,
     creadoEn: serverTimestamp(),
   });

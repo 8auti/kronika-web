@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -18,56 +19,65 @@ export function AuthProvider({ children }) {
   const [rol, setRol] = useState(null);
   const [cargando, setCargando] = useState(true);
 
+  // Lee el perfil de Firestore del usuario de Firebase y actualiza el estado
+  const cargarPerfil = useCallback(async (firebaseUser) => {
+    if (!firebaseUser) {
+      setUsuario(null);
+      setRol(null);
+      return;
+    }
+
+    try {
+      const usuarioRef = doc(db, "users", firebaseUser.uid);
+      const usuarioSnap = await getDoc(usuarioRef);
+
+      if (usuarioSnap.exists()) {
+        const datos = usuarioSnap.data();
+
+        // Usuario baneado por el admin: cerrar sesión
+        if (estaBaneado(datos)) {
+          await signOut(auth);
+          setUsuario(null);
+          setRol(null);
+          return;
+        }
+
+        setUsuario({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          ...datos,
+        });
+
+        setRol(datos.rol);
+      } else {
+        setUsuario({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+        });
+
+        setRol(null);
+      }
+    } catch (error) {
+      console.error("Error obteniendo el usuario:", error);
+      setUsuario(null);
+      setRol(null);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        setUsuario(null);
-        setRol(null);
-        setCargando(false);
-        return;
-      }
-
-      try {
-        const usuarioRef = doc(db, "users", firebaseUser.uid);
-        const usuarioSnap = await getDoc(usuarioRef);
-
-        if (usuarioSnap.exists()) {
-          const datos = usuarioSnap.data();
-
-          // Usuario baneado por el admin: cerrar sesión
-          if (estaBaneado(datos)) {
-            await signOut(auth);
-            setUsuario(null);
-            setRol(null);
-            return;
-          }
-
-          setUsuario({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            ...datos,
-          });
-
-          setRol(datos.rol);
-        } else {
-          setUsuario({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-          });
-
-          setRol(null);
-        }
-      } catch (error) {
-        console.error("Error obteniendo el usuario:", error);
-        setUsuario(null);
-        setRol(null);
-      } finally {
-        setCargando(false);
-      }
+      await cargarPerfil(firebaseUser);
+      setCargando(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [cargarPerfil]);
+
+  // Vuelve a leer el perfil (útil justo después de crearlo en el registro)
+  const recargarPerfil = useCallback(
+    () => cargarPerfil(auth.currentUser),
+    [cargarPerfil],
+  );
 
   return (
     <AuthContext.Provider
@@ -75,6 +85,7 @@ export function AuthProvider({ children }) {
         usuario,
         rol,
         cargando,
+        recargarPerfil,
       }}
     >
       {children}

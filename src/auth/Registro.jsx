@@ -12,10 +12,13 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 
 import { auth, db } from "../firebase";
 import {
+  ROL_PROFESOR,
   ROLES_CON_ACCESO,
   crearPerfilPropio,
   estaBaneado,
+  rutaInicio,
 } from "../services/usuariosService";
+import SelectorTipoCuenta from "./SelectorTipoCuenta.jsx";
 import { useAuth } from "./useAuth.jsx";
 
 const googleProvider = new GoogleAuthProvider();
@@ -61,7 +64,10 @@ function mensajeErrorGoogle(error) {
 
 export default function Registro() {
   const navigate = useNavigate();
-  const { usuario, rol } = useAuth();
+  const { usuario, rol, recargarPerfil } = useAuth();
+
+  // Paso 1: rol elegido ("profesor" | "usuario"). null = todavía no eligió.
+  const [rolElegido, setRolElegido] = useState(null);
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -87,6 +93,9 @@ export default function Registro() {
 
     await signOut(auth);
   }
+
+  // Adónde va la persona recién registrada según el rol que eligió
+  const rutaTrasRegistro = rolElegido === ROL_PROFESOR ? "/aulas" : "/landing";
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -137,6 +146,7 @@ export default function Registro() {
         await crearPerfilPropio(credenciales.user.uid, {
           nombre: nombreLimpio,
           email: emailLimpio,
+          rol: rolElegido,
         });
       } catch (error) {
         console.error("Error al guardar el perfil:", error);
@@ -145,7 +155,10 @@ export default function Registro() {
         return;
       }
 
-      navigate("/landing");
+      // El perfil se creó después de que AuthProvider lo buscó: recargarlo
+      // para que el rol (p. ej. profesor) esté disponible al navegar.
+      await recargarPerfil();
+      navigate(rutaTrasRegistro);
     } finally {
       setCargando(false);
     }
@@ -175,9 +188,11 @@ export default function Registro() {
               usuarioGoogle.email?.split("@")[0] ||
               "",
             email: usuarioGoogle.email ?? "",
+            rol: rolElegido,
           });
 
-          navigate("/sin-acceso");
+          await recargarPerfil();
+          navigate(rutaTrasRegistro);
           return;
         }
 
@@ -218,16 +233,41 @@ export default function Registro() {
 
   // Si ya hay sesión activa, no se puede acceder al registro
   if (usuario && ROLES_CON_ACCESO.includes(rol)) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to={rutaInicio(rol)} replace />;
   }
 
+  // Paso 1: elegir si es profesor o alumno/otro
+  if (!rolElegido) {
+    return <SelectorTipoCuenta onElegir={setRolElegido} />;
+  }
+
+  // Paso 2: completar el registro
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-8">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md rounded-xl bg-white p-8 shadow-md"
       >
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Crear cuenta</h1>
+        <h1 className="mb-2 text-2xl font-bold text-gray-900">Crear cuenta</h1>
+
+        <p className="mb-6 text-sm text-gray-600">
+          Te registrás como{" "}
+          <span className="font-medium text-gray-900">
+            {rolElegido === ROL_PROFESOR ? "profesor" : "alumno u otro"}
+          </span>
+          .{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setRolElegido(null);
+            }}
+            disabled={cargando}
+            className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline disabled:opacity-50"
+          >
+            Cambiar
+          </button>
+        </p>
 
         <div className="mb-4">
           <label
