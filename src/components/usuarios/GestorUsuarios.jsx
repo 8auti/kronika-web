@@ -9,6 +9,7 @@ import {
   cambiarEstadoUsuario,
   completarEstados,
   ESTADOS,
+  ROLES_INSTITUCION,
   crearUsuario,
   getUsuarios,
 } from "../../services/usuariosService";
@@ -18,6 +19,7 @@ const FORMULARIO_VACIO = {
   email: "",
   rol: "",
   password: "",
+  institucionId: "",
 };
 
 /**
@@ -27,6 +29,8 @@ const FORMULARIO_VACIO = {
  * - rolesVisibles: si se indica, solo se listan usuarios con esos roles.
  * - institucionId: si se indica, solo se listan los de esa institución
  *   y los usuarios nuevos quedan asociados a ella.
+ * - mostrarInstitucion: (admin) muestra a qué institución pertenece cada
+ *   profesor y alumno, y permite asignarla al crear o editar.
  * Suspender / reactivar está disponible para todas las filas listadas.
  */
 export default function GestorUsuarios({
@@ -36,6 +40,7 @@ export default function GestorUsuarios({
   rolesEditables = rolesCreables,
   rolesVisibles,
   institucionId,
+  mostrarInstitucion = false,
 }) {
   const { rol, usuario: usuarioActual } = useAuth();
 
@@ -86,17 +91,43 @@ export default function GestorUsuarios({
     cargarUsuarios();
   }, []);
 
+  // Instituciones disponibles (usuarios con rol "institucion")
+  const instituciones = useMemo(
+    () => usuarios.filter((u) => u.rol === "institucion"),
+    [usuarios]
+  );
+
+  // Agrega el nombre de la institución a profesores y alumnos
+  const usuariosVista = useMemo(() => {
+    if (!mostrarInstitucion) return usuarios;
+
+    const nombrePorUid = new Map(
+      instituciones.map((i) => [i.uid, i.nombre || i.email || i.uid])
+    );
+
+    return usuarios.map((u) => {
+      if (!ROLES_INSTITUCION.includes(u.rol)) return u;
+
+      return {
+        ...u,
+        institucionNombre: u.institucionId
+          ? (nombrePorUid.get(u.institucionId) ?? "Institución desconocida")
+          : "Sin institución",
+      };
+    });
+  }, [usuarios, instituciones, mostrarInstitucion]);
+
   const usuariosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
-    if (!texto) return usuarios;
+    if (!texto) return usuariosVista;
 
-    return usuarios.filter((u) =>
-      [u.nombre, u.email, u.rol, u.estado]
+    return usuariosVista.filter((u) =>
+      [u.nombre, u.email, u.rol, u.estado, u.institucionNombre]
         .filter(Boolean)
         .some((campo) => campo.toLowerCase().includes(texto))
     );
-  }, [usuarios, busqueda]);
+  }, [usuariosVista, busqueda]);
 
   const [pagina, setPagina] = useState(1);
   const usuariosPorPagina = 10;
@@ -143,6 +174,7 @@ export default function GestorUsuarios({
       email: u.email || "",
       rol: u.rol || rolesCreables[0],
       password: "",
+      institucionId: u.institucionId || "",
     });
     setMostrarFormulario(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -157,11 +189,26 @@ export default function GestorUsuarios({
       setMensaje("");
 
       if (editando) {
-        await actualizarUsuario(editandoUid, formulario, rolesEditables);
+        await actualizarUsuario(
+          editandoUid,
+          {
+            ...formulario,
+            // undefined = no tocar la institución (panel de la institución)
+            institucionId: mostrarInstitucion
+              ? formulario.institucionId
+              : undefined,
+          },
+          rolesEditables
+        );
         setMensaje("Usuario actualizado correctamente.");
       } else {
         await crearUsuario(
-          { ...formulario, institucionId },
+          {
+            ...formulario,
+            institucionId:
+              institucionId ??
+              (mostrarInstitucion ? formulario.institucionId : undefined),
+          },
           rolesCreables
         );
         setMensaje("Usuario creado correctamente.");
@@ -317,6 +364,38 @@ export default function GestorUsuarios({
                   </p>
                 )}
               </div>
+
+              {mostrarInstitucion &&
+                ROLES_INSTITUCION.includes(formulario.rol) && (
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      Institución
+                    </label>
+                    <select
+                      name="institucionId"
+                      value={formulario.institucionId}
+                      onChange={cambiarFormulario}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                    >
+                      <option value="">Sin institución</option>
+
+                      {instituciones.map((i) => (
+                        <option key={i.uid} value={i.uid}>
+                          {i.nombre || i.email}
+                        </option>
+                      ))}
+
+                      {formulario.institucionId &&
+                        !instituciones.some(
+                          (i) => i.uid === formulario.institucionId
+                        ) && (
+                          <option value={formulario.institucionId}>
+                            Institución desconocida
+                          </option>
+                        )}
+                    </select>
+                  </div>
+                )}
             </div>
 
             <button
@@ -340,7 +419,11 @@ export default function GestorUsuarios({
             setBusqueda(e.target.value);
             setPagina(1);
           }}
-          placeholder="Buscar por nombre, email, rol o estado..."
+          placeholder={
+            mostrarInstitucion
+              ? "Buscar por nombre, email, rol, estado o institución..."
+              : "Buscar por nombre, email, rol o estado..."
+          }
           className="mb-4 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 md:max-w-sm"
         />
 
@@ -356,6 +439,7 @@ export default function GestorUsuarios({
               onAlternarEstado={alternarEstado}
               cargando={cargando}
               hayUsuariosRegistrados={usuarios.length > 0}
+              mostrarInstitucion={mostrarInstitucion}
             />
 
             <Paginacion

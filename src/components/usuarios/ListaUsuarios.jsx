@@ -9,6 +9,7 @@ export default function ListaUsuarios({
   onAlternarEstado,
   cargando,
   hayUsuariosRegistrados,
+  mostrarInstitucion = false,
 }) {
   if (cargando) {
     return <p className="p-6">Cargando usuarios...</p>;
@@ -34,6 +35,9 @@ export default function ListaUsuarios({
               <th className="px-4 py-3 text-left">Nombre</th>
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">Rol</th>
+              {mostrarInstitucion && (
+                <th className="px-4 py-3 text-left">Institución</th>
+              )}
               <th className="px-4 py-3 text-left">Estado</th>
               <th className="px-4 py-3 text-left">UID</th>
               <th className="px-4 py-3 text-right">Acciones</th>
@@ -49,6 +53,7 @@ export default function ListaUsuarios({
                 rolesEditables={rolesEditables}
                 onEditar={onEditar}
                 onAlternarEstado={onAlternarEstado}
+                mostrarInstitucion={mostrarInstitucion}
               />
             ))}
           </tbody>
@@ -65,6 +70,7 @@ export default function ListaUsuarios({
             rolesEditables={rolesEditables}
             onEditar={onEditar}
             onAlternarEstado={onAlternarEstado}
+            mostrarInstitucion={mostrarInstitucion}
           />
         ))}
       </div>

@@ -6,6 +6,7 @@ export default function FilaUsuario({
   rolesEditables,
   onEditar,
   onAlternarEstado,
+  mostrarInstitucion = false,
 }) {
   const suspendido = usuario.estado === ESTADOS.BANEADO;
 
@@ -30,6 +31,12 @@ export default function FilaUsuario({
           {usuario.rol || "-"}
         </span>
       </td>
+
+      {mostrarInstitucion && (
+        <td className="px-4 py-3">
+          {usuario.institucionNombre ?? "-"}
+        </td>
+      )}
 
       <td className="px-4 py-3">
         <span

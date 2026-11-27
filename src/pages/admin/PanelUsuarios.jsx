@@ -1,15 +1,16 @@
 import GestorUsuarios from "../../components/usuarios/GestorUsuarios";
-import { ROLES } from "../../services/usuariosService";
+import { ROLES_ADMIN } from "../../services/usuariosService";
 
-// El admin crea/edita admin, editor e institución.
-// Profesores y alumnos los gestiona la institución: el admin solo
-// puede verlos y suspenderlos.
+// El admin crea y edita todos los roles (admin, editor, institución,
+// profesor, alumno y usuario), y ve a qué institución pertenece cada
+// profesor y alumno.
 export default function PanelUsuarios() {
   return (
     <GestorUsuarios
       titulo="Gestión de usuarios"
       descripcion="Administración de usuarios de Kronika"
-      rolesCreables={ROLES}
+      rolesCreables={ROLES_ADMIN}
+      mostrarInstitucion
     />
   );
 }

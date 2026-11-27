@@ -6,6 +6,7 @@ export default function TarjetaUsuario({
   rolesEditables,
   onEditar,
   onAlternarEstado,
+  mostrarInstitucion = false,
 }) {
   const suspendido = usuario.estado === ESTADOS.BANEADO;
 
@@ -45,6 +46,14 @@ export default function TarjetaUsuario({
           {usuario.rol || "-"}
         </span>
       </div>
+
+      {/* Institución (profesores y alumnos) */}
+      {mostrarInstitucion && usuario.institucionNombre && (
+        <p className="mt-3 text-sm text-gray-600">
+          <span className="font-medium">Institución:</span>{" "}
+          {usuario.institucionNombre}
+        </p>
+      )}
 
       {/* UID */}
       <details className="mt-3 text-xs text-gray-500">

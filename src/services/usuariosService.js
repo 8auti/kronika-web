@@ -24,6 +24,9 @@ export const ROLES = ["usuario", "admin", "editor", "institucion"];
 // Roles que gestiona cada institución (el admin solo puede suspenderlos)
 export const ROLES_INSTITUCION = ["profesor", "alumno"];
 
+// Roles que el admin puede crear y editar (incluye profesores y alumnos)
+export const ROLES_ADMIN = [...ROLES, ...ROLES_INSTITUCION];
+
 // Roles que pueden iniciar sesión en la web
 export const ROLES_CON_ACCESO = [...ROLES, "profesor"];
 
@@ -190,7 +193,10 @@ export async function crearUsuario(
       nombre: nombre.trim(),
       email: email.trim(),
       rol,
-      ...(institucionId ? { institucionId } : {}),
+      // Solo profesores y alumnos pertenecen a una institución
+      ...(institucionId && ROLES_INSTITUCION.includes(rol)
+        ? { institucionId }
+        : {}),
       estado: ESTADOS.ACTIVO,
       creadoEn: serverTimestamp(),
     });
@@ -209,17 +215,28 @@ export async function crearUsuario(
 
 export async function actualizarUsuario(
   uid,
-  { nombre, rol },
+  { nombre, rol, institucionId },
   rolesPermitidos = ROLES
 ) {
   if (!rolesPermitidos.includes(rol)) {
     throw new Error("Rol inválido.");
   }
 
-  await updateDoc(doc(db, "users", uid), {
+  const cambios = {
     nombre: nombre.trim(),
     rol,
-  });
+  };
+
+  // Si se pasa institucionId (undefined = no tocar la institución):
+  // profesores y alumnos la guardan; cualquier otro rol la pierde.
+  if (institucionId !== undefined) {
+    cambios.institucionId =
+      ROLES_INSTITUCION.includes(rol) && institucionId
+        ? institucionId
+        : deleteField();
+  }
+
+  await updateDoc(doc(db, "users", uid), cambios);
 }
 
 
